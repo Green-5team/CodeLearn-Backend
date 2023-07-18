@@ -13,19 +13,19 @@ export class UserService {
     constructor(@InjectModel(User.name) private userModel: Model<User>,
     private jwtService: JwtService,) {}
 
-    async createUser(user : UserRequestDto) : Promise<UserRequestDto> {
-        const hashedPassword = await bcrypt.hash(user.password, 10);
-        const newUser = new this.userModel({...user, password : hashedPassword});
-        return newUser.save();
-    }
+    // async createUser(user : UserRequestDto) : Promise<UserRequestDto> {
+    //     const hashedPassword = await bcrypt.hash(user.password, 10);
+    //     const newUser = new this.userModel({...user, password : hashedPassword});
+    //     return newUser.save();
+    // }
 
-    async validateUser(user : UserRequestDto) : Promise<any> {
-        const user_info = await this.userModel.findOne({email : user.email});
-        if (!user_info || !await bcrypt.compare(user.password, user_info.password)){
-            throw new UnauthorizedException('Invalid email or password');
-        }
-        return "Success";
-    }
+    // async validateUser(user : UserRequestDto) : Promise<any> {
+    //     const user_info = await this.userModel.findOne({email : user.email});
+    //     if (!user_info || !await bcrypt.compare(user.password, user_info.password)){
+    //         throw new UnauthorizedException('Invalid email or password');
+    //     }
+    //     return "Success";
+    // }
 
     async signUp(signUpDto: SignUpDto): Promise<{ token: string }> {
         const { email, password } = signUpDto;
@@ -119,37 +119,37 @@ export class UserService {
     
         const res = await this.userModel.updateOne({ email: email }, { $push: { friendrequest: user.email }})
         return res;
-      }
+    }
+
+    async acceptFriend(acceptfriendDto: AcceptFriendDto, user: User) {
+    const { email } = acceptfriendDto;
+    const mymail = user.email;
+    await this.userModel.updateOne({ email: mymail }, { $pull: { friendrequest: email }})
     
-      async acceptFriend(acceptfriendDto: AcceptFriendDto, user: User) {
-        const { email } = acceptfriendDto;
-        const mymail = user.email;
-        await this.userModel.updateOne({ email: mymail }, { $pull: { friendrequest: email }})
-        
-        await this.userModel.updateOne({ email: mymail }, { $push: { friend: email }})
-        await this.userModel.updateOne({ email: email }, { $push: { friend: mymail }})
-        return {msg:`${email} has added to friend`};
-      }
+    await this.userModel.updateOne({ email: mymail }, { $push: { friend: email }})
+    await this.userModel.updateOne({ email: email }, { $push: { friend: mymail }})
+    return {msg:`${email} has added to friend`};
+    }
+
+    async deleteFriend(deletefriendDto: DeleteFriendDto, user: User) {
+    const { email } = deletefriendDto;
+    const mymail = user.email;
+    await this.userModel.updateOne({ email: mymail }, { $pull: { friend: email }})
+    await this.userModel.updateOne({ email: email }, { $pull: { friend: mymail }})
+    return {msg:`${email} has removed from friend`};
+    }
+
+    async rejectFriend(rejectfriendDto: RejectFriendDto, user: User){
+    const { email } = rejectfriendDto;
+    const mymail = user.email;
+    await this.userModel.updateOne({ email: mymail }, { $pull: { friendrequest: email }})
+    return {msg:`Friend request from ${email} has rejected`};
+    }
+
+    async getallFriend( user: User){
+    const myfriend = user.friend;
     
-      async deleteFriend(deletefriendDto: DeleteFriendDto, user: User) {
-        const { email } = deletefriendDto;
-        const mymail = user.email;
-        await this.userModel.updateOne({ email: mymail }, { $pull: { friend: email }})
-        await this.userModel.updateOne({ email: email }, { $pull: { friend: mymail }})
-        return {msg:`${email} has removed from friend`};
-      }
-    
-      async rejectFriend(rejectfriendDto: RejectFriendDto, user: User){
-        const { email } = rejectfriendDto;
-        const mymail = user.email;
-        await this.userModel.updateOne({ email: mymail }, { $pull: { friendrequest: email }})
-        return {msg:`Friend request from ${email} has rejected`};
-      }
-    
-      async getallFriend( user: User){
-        const myfriend = user.friend;
-        
-        const res = await this.userModel.find({ email: { $in: myfriend }})
-        return res;
-      }
+    const res = await this.userModel.find({ email: { $in: myfriend }})
+    return res;
+    }
 }

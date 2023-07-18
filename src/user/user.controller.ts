@@ -9,21 +9,21 @@ import {SignUpDto, LoginDto, UpdateDto, LostDto, RenameDto, GetoneDto, RequestFr
 export class UserController {
     constructor(private userService: UserService) {}
     
-    @Post("/join")
-    @UsePipes(new ValidationPipe())
-    createUser(
-        @Body() userRequestDto : UserRequestDto
-    ) : Promise<UserRequestDto> {
-        return this.userService.createUser(userRequestDto);
-    }
+    // @Post("/join")
+    // @UsePipes(new ValidationPipe())
+    // createUser(
+    //     @Body() userRequestDto : UserRequestDto
+    // ) : Promise<UserRequestDto> {
+    //     return this.userService.createUser(userRequestDto);
+    // }
 
-    @Post("/")
-    @UsePipes(new ValidationPipe())
-    validateUser(
-        @Body() userRequestDto : UserRequestDto
-    ) : Promise<any> {
-        return this.userService.validateUser(userRequestDto);
-    }
+    // @Post("/")
+    // @UsePipes(new ValidationPipe())
+    // validateUser(
+    //     @Body() userRequestDto : UserRequestDto
+    // ) : Promise<any> {
+    //     return this.userService.validateUser(userRequestDto);
+    // }
 
     @Post('/signup')
     signUp(@Body() signUpDto: SignUpDto): Promise<{ token: string }> {
