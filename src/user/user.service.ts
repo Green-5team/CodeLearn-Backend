@@ -6,7 +6,7 @@ import { User } from './schemas/user.schema';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import {SignUpDto, LoginDto, UpdateDto, LostDto, RenameDto, GetoneDto} from "./dto"
-
+import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class UserService {
@@ -48,69 +48,92 @@ export class UserService {
     }
 
     async login(loginDto: LoginDto): Promise<{ token: string }> {
-    const { email, password } = loginDto;
+        const { email, password } = loginDto;
 
-    const user = await this.userModel.findOne({ email: email });
+        const user = await this.userModel.findOne({ email: email });
 
-    if (!user) {
-        throw new UnauthorizedException('Invalid email or password');
-    }
+        if (!user) {
+            throw new UnauthorizedException('Invalid email or password');
+        }
 
-    const isPasswordMatched = await bcrypt.compare(password, user.password);
+        const isPasswordMatched = await bcrypt.compare(password, user.password);
 
-    if (!isPasswordMatched) {
-        throw new UnauthorizedException('Invalid email or password');
-    }
+        if (!isPasswordMatched) {
+            throw new UnauthorizedException('Invalid email or password');
+        }
 
-    const token = this.jwtService.sign({ id: user._id });
+        const token = this.jwtService.sign({ id: user._id });
 
-    return { token };
-    }
+        return { token };
+        }
 
-    async update(updateDto: UpdateDto) {
-    const { email, password } = updateDto;
-    
-    // const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,12}$/;
-    // if (!passwordRegex.test(password)) {
-    //   throw new Error('Password must be 8 to 12 characters long and include at least one letter, one number, and one special character.');
-    // }
+        async update(updateDto: UpdateDto) {
+        const { email, password } = updateDto;
+        
+        // const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,12}$/;
+        // if (!passwordRegex.test(password)) {
+        //   throw new Error('Password must be 8 to 12 characters long and include at least one letter, one number, and one special character.');
+        // }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    await this.userModel.updateOne({email: email}, {password: hashedPassword})
+        await this.userModel.updateOne({email: email}, {password: hashedPassword})
 
-    return {msg:"Password Changed"};
+        return {msg:"Password Changed"};
     }
 
     async lost(lostDto: LostDto) {
-    const { email } = lostDto;
-    
-    const newPassword = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await this.userModel.updateOne({email: email}, {password: hashedPassword})
+        const { email } = lostDto;
 
-    return {password: newPassword};
+        const newPassword = Math.floor(100000 + Math.random() * 900000).toString();
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await this.userModel.updateOne({email: email}, {password: hashedPassword})
+
+        const transporter = nodemailer.createTransport({
+            service: 'Gmail',
+            auth: {
+            user: process.env.LOST_ID,
+            pass: process.env.LOST_PWD
+            }
+        });
+        
+        const mailOptions = {
+            from: process.env.LOST_ID,
+            to: email,
+            subject: 'New password',
+            text: `Your password is ${newPassword}.`
+        };
+        
+        try {
+            const info = await transporter.sendMail(mailOptions);
+            console.log('Email sent:', info.response);
+            return {msg:"new password mail sent"};
+        } catch (error) {
+            console.error('Error sending email:', error);
+            return {msg:"Error sending email"};
+        }
     }
+    
 
     async rename(renameDto: RenameDto) {
-    const { name, email} = renameDto;
+        const { name, email} = renameDto;
 
-    await this.userModel.updateOne({email: email}, {name: name})
+        await this.userModel.updateOne({email: email}, {name: name})
 
-    return {msg:`Name Changed to ${name}`};
-    }
+        return {msg:`Name Changed to ${name}`};
+        }
 
-    async getAll() {
-        const res = await this.userModel.find()
-        return res;
+        async getAll() {
+            const res = await this.userModel.find()
+            return res;
     }
 
     async getOne(getoneDto: GetoneDto) {
-    const { email } = getoneDto;
-    const user = await this.userModel.findOne({ email: email });
-    if(!user){
-        throw new NotFoundException(`User with name ${email} not found.`)
-    }
-    return user;
+        const { email } = getoneDto;
+        const user = await this.userModel.findOne({ email: email });
+        if(!user){
+            throw new NotFoundException(`User with name ${email} not found.`)
+        }
+        return user;
     }
 }
