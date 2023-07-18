@@ -5,7 +5,7 @@ import { UserRequestDto } from './dto/user.dto';
 import { User } from './schemas/user.schema';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import {SignUpDto, LoginDto, UpdateDto, LostDto, RenameDto, GetoneDto} from "./dto"
+import {SignUpDto, LoginDto, UpdateDto, LostDto, RenameDto, GetoneDto, RequestFriendDto, AcceptFriendDto, DeleteFriendDto, RejectFriendDto} from "./dto"
 
 
 @Injectable()
@@ -113,4 +113,43 @@ export class UserService {
     }
     return user;
     }
+
+    async requestFriend(requestfriendDto: RequestFriendDto, user: User) {
+        const { email } = requestfriendDto;
+    
+        const res = await this.userModel.updateOne({ email: email }, { $push: { friendrequest: user.email }})
+        return res;
+      }
+    
+      async acceptFriend(acceptfriendDto: AcceptFriendDto, user: User) {
+        const { email } = acceptfriendDto;
+        const mymail = user.email;
+        await this.userModel.updateOne({ email: mymail }, { $pull: { friendrequest: email }})
+        
+        await this.userModel.updateOne({ email: mymail }, { $push: { friend: email }})
+        await this.userModel.updateOne({ email: email }, { $push: { friend: mymail }})
+        return {msg:`${email} has added to friend`};
+      }
+    
+      async deleteFriend(deletefriendDto: DeleteFriendDto, user: User) {
+        const { email } = deletefriendDto;
+        const mymail = user.email;
+        await this.userModel.updateOne({ email: mymail }, { $pull: { friend: email }})
+        await this.userModel.updateOne({ email: email }, { $pull: { friend: mymail }})
+        return {msg:`${email} has removed from friend`};
+      }
+    
+      async rejectFriend(rejectfriendDto: RejectFriendDto, user: User){
+        const { email } = rejectfriendDto;
+        const mymail = user.email;
+        await this.userModel.updateOne({ email: mymail }, { $pull: { friendrequest: email }})
+        return {msg:`Friend request from ${email} has rejected`};
+      }
+    
+      async getallFriend( user: User){
+        const myfriend = user.friend;
+        
+        const res = await this.userModel.find({ email: { $in: myfriend }})
+        return res;
+      }
 }

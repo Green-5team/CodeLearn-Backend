@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Patch, Post, Query, UseGuards, Param, Req, Request, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Query, UseGuards, Param, Req, Request, UsePipes, ValidationPipe, Delete } from '@nestjs/common';
 import { UserRequestDto } from './dto/user.dto';
 import { UserService } from './user.service';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from './schemas/user.schema';
-import {SignUpDto, LoginDto, UpdateDto, LostDto, RenameDto, GetoneDto} from "./dto"
+import {SignUpDto, LoginDto, UpdateDto, LostDto, RenameDto, GetoneDto, RequestFriendDto, AcceptFriendDto, DeleteFriendDto, RejectFriendDto} from "./dto"
 
 @Controller('user')
 export class UserController {
@@ -30,7 +30,7 @@ export class UserController {
       return this.userService.signUp(signUpDto);
     }
   
-    @Get('/login')
+    @Post('/login')
     login(@Body() loginDto: LoginDto): Promise<{ token: string }> {
       return this.userService.login(loginDto);
     }
@@ -68,4 +68,33 @@ export class UserController {
       return this.userService.getOne(getoneDto);
     }
   
+    @Post("/requestfriend")
+    @UseGuards(AuthGuard())
+    requestFriend(@Body() requestfriendDto: RequestFriendDto, @Req() req) {
+      return this.userService.requestFriend(requestfriendDto, req.user);
+    }
+  
+    @Get("/acceptfriend")
+    @UseGuards(AuthGuard())
+    acceptFriend(@Body() acceptfriendDto: AcceptFriendDto, @Req() req) {
+      return this.userService.acceptFriend(acceptfriendDto, req.user);
+    }
+  
+    @Delete("/deletefriend")
+    @UseGuards(AuthGuard())
+    deleteFriend(@Body() deletefriendDto: DeleteFriendDto, @Req() req) {
+      return this.userService.deleteFriend(deletefriendDto, req.user);
+    }
+    
+    @Get("/rejectfriend")
+    @UseGuards(AuthGuard())
+    rejectFriend(@Body() rejectfriendDto: RejectFriendDto, @Req() req) {
+      return this.userService.rejectFriend(rejectfriendDto, req.user);
+    }
+  
+    @Get("/getallfriend")
+    @UseGuards(AuthGuard())
+    getallFriend(@Req() req) {
+      return this.userService.getallFriend(req.user);
+    }
 }
