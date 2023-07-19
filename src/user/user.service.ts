@@ -39,10 +39,13 @@ export class UserService {
         // }
     
         const hashedPassword = await bcrypt.hash(password, 10);
-    
+        const name = "";
+        const online = 0;
         const user = await this.userModel.create({
+          name,
           email,
           password: hashedPassword,
+          online
         });
     
         const token = this.jwtService.sign({ id: user._id });
@@ -64,10 +67,16 @@ export class UserService {
     if (!isPasswordMatched) {
         throw new UnauthorizedException('Invalid email or password');
     }
-
+    await this.userModel.updateOne({email: email}, {login: 1})
     const token = this.jwtService.sign({ id: user._id });
 
     return { token };
+    }
+
+    async logout(user: User){
+        const mymail = user.email;
+        await this.userModel.updateOne({ email: mymail }, { online: 0 })
+        return {msg:`${mymail} has logout`};
     }
 
     async update(updateDto: UpdateDto) {
