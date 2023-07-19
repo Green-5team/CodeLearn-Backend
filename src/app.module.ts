@@ -3,6 +3,7 @@ import { RoomModule } from './room/room.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from "@nestjs/config";
 import { UserModule } from './user/user.module';
+import { FriendModule } from './friend/friend.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UserModule } from './user/user.module';
     MongooseModule.forRoot(process.env.MONGODB_ID),
     UserModule,
     RoomModule,
+    FriendModule,
   ],
   controllers: [],
   providers: []
