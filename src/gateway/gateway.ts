@@ -13,11 +13,17 @@ import {
 import { Namespace, Socket } from 'socket.io';
 import { RoomCreateDto } from 'src/room/dto/room.dto';
 import { RoomService } from 'src/room/room.service';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { User } from 'src/user/schemas/user.schema';
 
 @ApiTags('Room')
 @WebSocketGateway({cors : true, namespace: 'room'})
 export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect{
-    constructor(private readonly roomService: RoomService) {}
+    constructor(private readonly roomService: RoomService, 
+        @InjectModel(User.name) private userModel: Model<User>,
+        ) {}
+
 
     private logger = new Logger('Gateway');
     @WebSocketServer() nsp: Namespace;
@@ -30,15 +36,18 @@ export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         this.logger.log('웹소켓 서버 초기화');
     }
 
-    handleConnection(@ConnectedSocket() socket: Socket) {
+    async handleConnection(@ConnectedSocket() socket: Socket) {
         this.logger.log(`"${socket.id} socket connected!`);
         socket.broadcast.emit('message', {
             message: `${socket.id}가 들어왔습니다.`,
         });
+        await this.userModel.updateOne({ _id: socket.id }, { online: true })
     }
 
-    handleDisconnect(@ConnectedSocket() socket: Socket)  {
+    async handleDisconnect(@ConnectedSocket() socket: Socket)  {
         this.logger.log(`${socket.id} sockect disconnected!`);
+        await this.userModel.updateOne({ _id: socket.id }, { online: false })
+        this.logger.log("${socket.id} socket connected!");
     }
     @SubscribeMessage('create-room')
     @ApiOperation({ summary: 'Create a new room' })
