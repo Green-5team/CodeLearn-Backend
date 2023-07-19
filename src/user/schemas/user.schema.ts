@@ -6,11 +6,13 @@ import { Document, SchemaOptions } from "mongoose";
 
 export class User extends Document {
     
+    @Prop()
+    name:string;
+
     @Prop({
         required: true,
         unique: true,
     })
-
     @IsEmail()
     @IsNotEmpty()
     email: string;
@@ -22,6 +24,14 @@ export class User extends Document {
     @IsNotEmpty()
     password: string;
 
+    @Prop()
+    online: boolean;
+    
+    @Prop()
+    friend: string[];
+
+    @Prop()
+    friendrequest: string[];
 }
 
 export const UserSchema  = SchemaFactory.createForClass(User);

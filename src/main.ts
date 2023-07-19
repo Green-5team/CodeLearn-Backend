@@ -11,9 +11,6 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe());
-  app.useStaticAssets(join(__dirname, "..", "public")); //javascript,css파일을 서빙해주는 역할, join이라는 매서드는 __dirname현재디렉토리를 가리킴, ..은 현재디렉토리의 상위폴더,public폴더를 가리킴
-  app.setBaseViewsDir(join(__dirname, "..", "views")); //template engine을 어디 폴더에 둘 것인지
-  app.setViewEngine("hbs");
 
   const config = new DocumentBuilder()
     .setTitle("Code-Learn API")
