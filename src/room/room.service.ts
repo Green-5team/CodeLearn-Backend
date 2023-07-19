@@ -4,12 +4,18 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Room } from './schemas/room.schema'
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
+import { User } from 'src/user/schemas/user.schema';
+
 @Injectable()
 export class RoomService {
-    constructor(@InjectModel(Room.name) private roomModel: Model<Room>) {}
+    constructor(@InjectModel(Room.name) private roomModel: Model<Room>,
+    @InjectModel(User.name) private userModel: Model<User>
+    ) {}
     
-    async createRoom(room : RoomCreateDto) : Promise<Room> {
+    async createRoom(room : RoomCreateDto, user: User) : Promise<Room> {
         let newRoom;
+        const userid = user._id;
+        
         const found = await this.roomModel.findOne({title : room.title});
         if(found){
             throw new BadRequestException('Duplicate room title! please enter new title');

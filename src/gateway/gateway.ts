@@ -1,4 +1,4 @@
-import { Controller, Logger } from '@nestjs/common';
+import { Controller, Logger, UseGuards, Req } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   ConnectedSocket,
@@ -13,6 +13,7 @@ import {
 import { Namespace, Socket } from 'socket.io';
 import { RoomCreateDto } from 'src/room/dto/room.dto';
 import { RoomService } from 'src/room/room.service';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('Room')
 @WebSocketGateway({cors : true, namespace: 'room'})
@@ -40,10 +41,13 @@ export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     handleDisconnect(@ConnectedSocket() socket: Socket)  {
         this.logger.log(`${socket.id} sockect disconnected!`);
     }
+
+
     @SubscribeMessage('create-room')
+    @UseGuards(AuthGuard())
     @ApiOperation({ summary: 'Create a new room' })
-    async handleCreateRoom(@MessageBody() roomCreateDto: RoomCreateDto): Promise<void> {
-        const room = await this.roomService.createRoom(roomCreateDto);
+    async handleCreateRoom(@MessageBody() roomCreateDto: RoomCreateDto, @Req() req): Promise<void> {
+        const room = await this.roomService.createRoom(roomCreateDto, req);
         this.nsp.emit('room-created', room);
     }
   
