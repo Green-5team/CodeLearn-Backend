@@ -8,9 +8,7 @@ import { User } from 'src/user/schemas/user.schema';
 
 @Injectable()
 export class RoomService {
-    constructor(@InjectModel(Room.name) private roomModel: Model<Room>,
-    @InjectModel(User.name) private userModel: Model<User>
-    ) {}
+    constructor(@InjectModel(Room.name) private roomModel: Model<Room>) {}
     
     async createRoom(room : RoomCreateDto, user: User) : Promise<Room> {
         let newRoom;
