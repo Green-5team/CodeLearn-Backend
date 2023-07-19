@@ -65,4 +65,19 @@ export class AppGateway
   async handleVoiceDisconnect(@ConnectedSocket() socket: Socket) {
     this.logger.log(`${socket.id} voice disconnected!`);
   }
+
+  @SubscribeMessage("paint-connect")
+  @ApiOperation({ summary: "paint connected" })
+  async handlePaintConnection(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { room: string; message: string }
+  ) {
+    this.logger.log(`${socket.id} paint connected!`);
+    this.nsp.to(data.room).emit("paint-connect", data.message);
+  }
+
+  @SubscribeMessage("paint-disconnect")
+  async handlePaintDisconnect(@ConnectedSocket() socket: Socket) {
+    this.logger.log(`${socket.id} paint disconnected!`);
+  }
 }
