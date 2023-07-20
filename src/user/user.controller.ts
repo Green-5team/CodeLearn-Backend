@@ -1,5 +1,4 @@
 import { Body, Controller, Get, Patch, Post, Query, UseGuards, Param, Req, Request, UsePipes, ValidationPipe } from '@nestjs/common';
-import { UserRequestDto } from './dto/user.dto';
 import { UserService } from './user.service';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from './schemas/user.schema';
@@ -27,7 +26,7 @@ export class UserController {
     //     return this.userService.validateUser(userRequestDto);
     // }
 
-    @Post('/signup')
+    @Post()
     signUp(@Body() signUpDto: SignUpDto): Promise<{ token: string }> {
       return this.userService.signUp(signUpDto);
     }
@@ -37,10 +36,9 @@ export class UserController {
       return this.userService.login(loginDto);
     }
   
-    @Get('/logout')
+    @Post('/logout')
     logout(@Request() req): any {
-      //req.cookie.destroy();
-      return { msg: 'The user has loggedout' }
+      return this.userService.logout(req.user);
     }
   
     @Patch('/update')
@@ -60,12 +58,12 @@ export class UserController {
       return this.userService.rename(renameDto);
     }
 
-    @Get('/getall')
+    @Get()
     getall(){
       return  this.userService.getAll();
     }
     
-    @Get("/getone")
+    @Get("/one")
     getOne(@Body() getoneDto: GetoneDto) {
       return this.userService.getOne(getoneDto);
     }
