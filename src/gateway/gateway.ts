@@ -10,6 +10,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from "@nestjs/websockets";
+import { connected } from "process";
 import { Namespace, Socket } from "socket.io";
 import { RoomCreateDto } from "src/room/dto/room.dto";
 import { RoomService } from "src/room/room.service";
@@ -73,7 +74,19 @@ export class AppGateway
     @MessageBody() data: { room: string; message: string }
   ) {
     this.logger.log(`${socket.id} paint connected!`);
-    this.nsp.to(data.room).emit("paint-connect", data.message);
+    this.nsp.to(data.room).emit("paint-connected", data.message);
+  }
+
+  @SubscribeMessage("draw")
+  async handleDraw(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody()
+    data: {
+      room: string;
+      line: { x1: number; y1: number; x2: number; y2: number; color: string };
+    }
+  ) {
+    this.nsp.to(data.room).emit("draw", data.line);
   }
 
   @SubscribeMessage("paint-disconnect")

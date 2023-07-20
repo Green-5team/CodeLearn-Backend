@@ -1,60 +1,83 @@
-import { IsString, IsNotEmpty, IsNumber } from 'class-validator';
-import { IsEnum, IsOptional, Validate, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
+import { IsString, IsNotEmpty, IsNumber, IsUUID } from "class-validator";
+import {
+  IsEnum,
+  IsOptional,
+  Validate,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from "class-validator";
 
-import { ApiProperty, ApiTags } from '@nestjs/swagger';
-import { Controller } from '@nestjs/common';
+import { ApiProperty, ApiTags } from "@nestjs/swagger";
+import { Controller } from "@nestjs/common";
 
 @ValidatorConstraint({ async: false })
-export class IsPasswordRequiredConstraint implements ValidatorConstraintInterface {
-
-    validate(value: any, args: ValidationArguments) {
-        const { status, password } = args.object as RoomCreateDto;
-        if (status === RoomStatus.PRIVATE && !password) {
-            return false; // password must be defined if status is PRIVATE
-        }
-        return true; 
+export class IsPasswordRequiredConstraint
+  implements ValidatorConstraintInterface
+{
+  validate(value: any, args: ValidationArguments) {
+    const { status, password } = args.object as RoomCreateDto;
+    if (status === RoomStatus.PRIVATE && !password) {
+      return false; // password must be defined if status is PRIVATE
     }
+    return true;
+  }
 
-    defaultMessage(args: ValidationArguments) {
-        return 'Password is required when status is PRIVATE.';
-    }
+  defaultMessage(args: ValidationArguments) {
+    return "Password is required when status is PRIVATE.";
+  }
 }
 
 export enum RoomStatus {
-    PUBLIC = 'PUBLIC',
-    PRIVATE = 'PRIVATE'
+  PUBLIC = "PUBLIC",
+  PRIVATE = "PRIVATE",
+  READY = "READY",
 }
 
 export enum RoomMode {
-    STUDY = 'STUDY',
-    COOPERATIVE  = 'COOPERATIVE'
+  STUDY = "STUDY",
+  COOPERATIVE = "COOPERATIVE",
 }
 
 export class RoomCreateDto {
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty()
+  title: string;
 
-    @IsNotEmpty()
-    @IsString()
-    @ApiProperty()
-    title : string;
+  @IsNotEmpty()
+  @IsNumber()
+  @ApiProperty()
+  max_members: number;
 
-    @IsNotEmpty()
-    @IsNumber()
-    @ApiProperty()
-    max_members : number;
+  @IsEnum(RoomStatus)
+  @ApiProperty()
+  status: RoomStatus;
 
-    @IsEnum(RoomStatus)
-    @ApiProperty()
-    status : RoomStatus;
+  @ApiProperty()
+  @Validate(IsPasswordRequiredConstraint, {
+    message: "password should not be empty",
+  })
+  password: string;
 
-    @ApiProperty()
-    @Validate(IsPasswordRequiredConstraint,{ message: 'password should not be empty' })
-    password : string;
+  @ApiProperty()
+  @IsNotEmpty()
+  level: number;
 
-    @ApiProperty()
-    @IsNotEmpty()
-    level : number;
+  @ApiProperty()
+  @IsEnum(RoomMode)
+  mode: RoomMode;
+}
 
-    @ApiProperty()
-    @IsEnum(RoomMode)
-    mode : RoomMode;
+export class UpdateUserStatusDto {
+  @IsNotEmpty()
+  @IsUUID()
+  id: string;
+
+  @IsNotEmpty()
+  @IsUUID()
+  title: string;
+
+  @IsNotEmpty()
+  status: string;
 }

@@ -1,52 +1,64 @@
-import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose"
-import { IsNotEmpty } from 'class-validator';
+import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose";
+import { IsNotEmpty } from "class-validator";
 import { Document, SchemaOptions } from "mongoose";
 
 export enum RoomStatus {
-    PUBLIC = 'PUBLIC',
-    PRIVATE = 'PRIVATE'
+  PUBLIC = "PUBLIC",
+  PRIVATE = "PRIVATE",
 }
 
 export enum RoomMode {
-    STUDY = 'STUDY',
-    COOPERATIVE  = 'COOPERATIVE'
+  STUDY = "STUDY",
+  COOPERATIVE = "COOPERATIVE",
 }
 
 @Schema({
-    timestamps : true
+  timestamps: true,
 })
-
 export class Room extends Document {
+  @Prop({
+    required: true,
+    unique: true,
+  })
+  title: string;
 
-    @Prop({
-        required: true,
-        unique: true,
-    })
-    title : string;
+  @Prop({ default: 1 })
+  member_count: number;
 
-    @Prop({ default: 1 })
-    member_count : number;
+  @Prop({ required: true })
+  max_members: number;
 
-    @Prop({required: true})
-    max_members : number;
+  @Prop({ required: true })
+  status: RoomStatus;
 
-    @Prop({required: true})
-    status : RoomStatus;
-    
-    @Prop()
-    password : string;
-    
-    @Prop({required: true, default : 1})
-    level : number;
+  @Prop()
+  password: string;
 
-    @Prop({required: true, default : 'STUDY'})
-    mode : RoomMode;
+  @Prop({ required: true, default: 1 })
+  level: number;
 
-    @Prop({default : true})
-    ready : boolean; 
+  @Prop({ required: true, default: "STUDY" })
+  mode: RoomMode;
 
-    @Prop()
-    create_time : Date;
+  @Prop({ default: true })
+  ready: boolean;
+
+  @Prop()
+  create_time: Date;
+
+  @Prop({
+    type: [
+      {
+        id: String,
+        status: String,
+      },
+    ],
+    default: [],
+  })
+  participants: {
+    id: string;
+    status: string;
+  }[];
 }
 
-export const RoomSchemas  = SchemaFactory.createForClass(Room);
+export const RoomSchemas = SchemaFactory.createForClass(Room);
