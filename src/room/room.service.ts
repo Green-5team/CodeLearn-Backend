@@ -25,7 +25,7 @@ export class RoomService {
         else{
             newRoom = new this.roomModel({...room});
         }
-       
+        console.log(userid)
         return newRoom.save()
     }
 }

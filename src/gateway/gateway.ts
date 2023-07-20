@@ -47,7 +47,7 @@ export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     @UseGuards(AuthGuard())
     @ApiOperation({ summary: 'Create a new room' })
     async handleCreateRoom(@MessageBody() roomCreateDto: RoomCreateDto, @Req() req): Promise<void> {
-        const room = await this.roomService.createRoom(roomCreateDto, req);
+        const room = await this.roomService.createRoom(roomCreateDto, req.user);
         this.nsp.emit('room-created', room);
     }
   
