@@ -55,7 +55,8 @@ export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
       @ConnectedSocket() socket: Socket
 
     ): Promise<void> {
-        const token = await socket.handshake.headers.authorization;
+        let bearer = await socket.handshake.headers.authorization;
+        let token = bearer.split("Bearer ")[1];
         console.log(token);
         console.log("first : ",roombodystring);
         let roomCreateDto = JSON.parse(roombodystring);
@@ -73,7 +74,8 @@ export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     async handleJoinRoom( 
         @MessageBody() { title }: { title: string },
         @ConnectedSocket() socket: Socket): Promise<void> {
-        const token = await socket.handshake.headers.authorization;
+        let bearer = await socket.handshake.headers.authorization;
+        let token = bearer.split("Bearer ")[1];
         const condition = await this.roomService.checkRoomCondition(title);
 
         if(!condition){
