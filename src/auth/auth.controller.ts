@@ -27,6 +27,13 @@ export class AuthController {
 
   @Public()
   @HttpCode(HttpStatus.OK)
+  @Post("signup")
+  signUp(@Body() signUpDto: AuthDto) {
+    return this.authService.signUp(signUpDto);
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
   @Post("signupcheck")
   signUpcheck(@Body("email") email: string) {
     return this.authService.checkDuplicateEmail(email);
