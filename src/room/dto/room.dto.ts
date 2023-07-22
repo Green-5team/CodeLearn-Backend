@@ -1,117 +1,126 @@
-import { IsString, IsNotEmpty, IsNumber, IsArray, IsBoolean } from 'class-validator';
-import { IsEnum, IsOptional, Validate, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsArray,
+  IsBoolean,
+} from "class-validator";
+import {
+  IsEnum,
+  IsOptional,
+  Validate,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from "class-validator";
 
-import { ApiProperty, ApiTags } from '@nestjs/swagger';
-import { Controller } from '@nestjs/common';
-import { ObjectId } from 'mongoose';
-import { Prop } from '@nestjs/mongoose';
+import { ApiProperty, ApiTags } from "@nestjs/swagger";
+import { Controller } from "@nestjs/common";
+import { ObjectId } from "mongoose";
+import { Prop } from "@nestjs/mongoose";
 
 @ValidatorConstraint({ async: false })
-export class IsPasswordRequiredConstraint implements ValidatorConstraintInterface {
-
-    validate(value: any, args: ValidationArguments) {
-        const { status, password } = args.object as RoomCreateDto;
-        if (status === RoomStatus.PRIVATE && !password) {
-            return false; // password must be defined if status is PRIVATE
-        }
-        return true; 
+export class IsPasswordRequiredConstraint
+  implements ValidatorConstraintInterface
+{
+  validate(value: any, args: ValidationArguments) {
+    const { status, password } = args.object as RoomCreateDto;
+    if (status === RoomStatus.PRIVATE && !password) {
+      return false; // password must be defined if status is PRIVATE
     }
+    return true;
+  }
 
-    defaultMessage(args: ValidationArguments) {
-        return 'Password is required when status is PRIVATE.';
-    }
+  defaultMessage(args: ValidationArguments) {
+    return "Password is required when status is PRIVATE.";
+  }
 }
 
-
 export enum RoomStatus {
-    PUBLIC = 'PUBLIC',
-    PRIVATE = 'PRIVATE',
-    ACTIVE = "ACTIVE"
+  PUBLIC = "PUBLIC",
+  PRIVATE = "PRIVATE",
+  ACTIVE = "ACTIVE",
 }
 
 export enum RoomMode {
-    STUDY = 'STUDY',
-    COOPERATIVE  = 'COOPERATIVE'
+  STUDY = "STUDY",
+  COOPERATIVE = "COOPERATIVE",
 }
 
 export enum EmptyOrLock {
-    EMPTY = "EMPTY",
-    LOCK = "LOCK"
+  EMPTY = "EMPTY",
+  LOCK = "LOCK",
 }
 
 export class RoomCreateDto {
+  @IsNotEmpty()
+  @IsString()
+  @ApiProperty()
+  title: string;
 
-    @IsNotEmpty()
-    @IsString()
-    @ApiProperty()
-    title : string;
+  @IsNotEmpty()
+  @IsNumber()
+  @ApiProperty()
+  max_members: number;
 
-    @IsNotEmpty()
-    @IsNumber()
-    @ApiProperty()
-    max_members : number;
+  @IsEnum(RoomStatus)
+  @ApiProperty()
+  status: RoomStatus;
 
-    @IsEnum(RoomStatus)
-    @ApiProperty()
-    status : RoomStatus;
+  @ApiProperty()
+  @Validate(IsPasswordRequiredConstraint, {
+    message: "password should not be empty",
+  })
+  password: string;
 
-    @ApiProperty()
-    @Validate(IsPasswordRequiredConstraint,{ message: 'password should not be empty' })
-    password : string;
+  @ApiProperty()
+  @IsNotEmpty()
+  level: number;
 
-    @ApiProperty()
-    @IsNotEmpty()
-    level : number;
-
-    @ApiProperty()
-    @IsEnum(RoomMode)
-    mode : RoomMode;
+  @ApiProperty()
+  @IsEnum(RoomMode)
+  mode: RoomMode;
 }
 
 export class RoomAndUserDto {
+  @IsNotEmpty()
+  @ApiProperty()
+  room_id: ObjectId;
 
-    @IsNotEmpty()
-    @ApiProperty()
-    room_id: ObjectId;
-  
-    @IsNotEmpty()
-    @ApiProperty()
-    user_info: string[] ;
+  @IsNotEmpty()
+  @ApiProperty()
+  user_info: string[];
 
-    @IsNotEmpty()
-    @ApiProperty()
-    ready_status: boolean[];
-
+  @IsNotEmpty()
+  @ApiProperty()
+  ready_status: boolean[];
+  user_id: any;
+  socket_id: string;
 }
 
 export class UserInfoDto {
+  @ApiProperty()
+  nickname: string;
 
+  @IsBoolean()
+  @ApiProperty()
+  status: boolean;
 
-    @ApiProperty()
-    nickname : string;
-  
-    @IsBoolean()
-    @ApiProperty()
-    status : boolean;
-  
-    @IsNumber()
-    @ApiProperty()
-    level : number;
-  
+  @IsNumber()
+  @ApiProperty()
+  level: number;
 }
 
 export class RoomStatusChangeDto {
+  @IsNotEmpty()
+  @ApiProperty()
+  title: string;
 
-    @IsNotEmpty()
-    @ApiProperty()
-    title : string ;
+  @IsNotEmpty()
+  @ApiProperty()
+  member_count: number;
 
-    @IsNotEmpty()
-    @ApiProperty()
-    member_count: number;
-
-    @IsArray()
-    @ApiProperty()
-    user_info : (UserInfoDto | EmptyOrLock)[]
-
+  @IsArray()
+  @ApiProperty()
+  user_info: (UserInfoDto | EmptyOrLock)[];
 }
