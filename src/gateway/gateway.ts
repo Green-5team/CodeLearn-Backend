@@ -119,35 +119,29 @@ export class AppGateway
   async handleReady(
     @ConnectedSocket() socket: Socket
   ): Promise<{ success: boolean; message: string }> {
-    try {
-      const token = socket.handshake.headers.authorization?.split(" ")[1];
-      if (!token) {
-        throw new Error("No token provided");
-      }
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (!decoded) {
-        throw new Error("Invalid token");
-      }
-      const userId = await this.userService.readyToken(token);
-      const updatedUser = await this.userService.updateUserStatus(
-        userId,
-        UserStatus.READY
-      );
-      if (!updatedUser) {
-        throw new Error("Failed to update user status to READY");
-      }
-      socket.broadcast.emit("user-status-updated", {
-        userId: userId,
-        status: updatedUser.status,
-      });
+    const token = socket.handshake.headers.authorization?.split(" ")[1];
+    const userId = await this.userService.readyToken(token);
+    const updatedUser = await this.userService.updateUserStatus(
+      userId,
+      UserStatus.READY
+    );
 
-      return {
-        success: true,
-        message: "User status updated to READY successfully",
-      };
-    } catch (err) {
-      // socket.emit("error", { message: `Error occurred: ${err.message}` });
-      // return { success: false, message: `Error occurred: ${err.message}` };
-    }
+    socket.broadcast.emit("user-status-updated", {
+      userId: userId,
+      status: updatedUser.status,
+    });
+
+    return {
+      success: true,
+      message: "User status updated to READY successfully",
+    };
   }
+
+  // @SubscribeMessage("ready-to-start")
+  // async handleReadytoStart(
+  //   @ConnectedSocket() socket: Socket
+  // ): Promise<{ success: boolean; message: string }> {
+  //   const token = socket.handshake.headers.authorization?.split(" ")[1];
+  //   const;
+  // }
 }

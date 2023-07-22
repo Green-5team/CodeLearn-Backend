@@ -34,6 +34,11 @@ export class UsersService {
 
   async updateUserStatus(userId: ObjectId, status: UserStatus): Promise<User> {
     const user = await this.authModel.findById(userId);
+
+    if (user.status === status) {
+      status =
+        status === UserStatus.READY ? UserStatus.NOT_READY : UserStatus.READY;
+    }
     const updatedUser = await this.authModel.findByIdAndUpdate(
       userId,
       { status },
