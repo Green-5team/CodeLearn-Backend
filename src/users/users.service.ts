@@ -33,22 +33,13 @@ export class UsersService {
   }
 
   async updateUserStatus(userId: ObjectId, status: UserStatus): Promise<User> {
-    // console.log(`Updating status for user ID: ${userId}`);
-    // console.log(`New status: ${status}`); // New status logging
     const user = await this.authModel.findById(userId);
-    // if (!user) {
-    //   console.error(`User with id ${userId} does not exist`);
-    //   throw new Error(`User with id ${userId} does not exist`);
-    // }
     const updatedUser = await this.authModel.findByIdAndUpdate(
       userId,
       { status },
       { new: true }
     );
-    // Logging the status of the returned user
-    // console.log(`Updated user status: ${updatedUser?.status}`);
 
-    // console.log(`Updated user: ${JSON.stringify(updatedUser)}`);
     return updatedUser;
   }
 }

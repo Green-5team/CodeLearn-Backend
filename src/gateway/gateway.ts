@@ -124,14 +124,10 @@ export class AppGateway
       if (!token) {
         throw new Error("No token provided");
       }
-
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       if (!decoded) {
         throw new Error("Invalid token");
       }
-
-      // console.log(`Decoded token: ${JSON.stringify(decoded)}`); // 이 부분 추가
-
       const userId = await this.userService.readyToken(token);
       const updatedUser = await this.userService.updateUserStatus(
         userId,
@@ -140,7 +136,6 @@ export class AppGateway
       if (!updatedUser) {
         throw new Error("Failed to update user status to READY");
       }
-
       socket.broadcast.emit("user-status-updated", {
         userId: userId,
         status: updatedUser.status,
@@ -151,7 +146,6 @@ export class AppGateway
         message: "User status updated to READY successfully",
       };
     } catch (err) {
-      // console.error(`Error occurred in handleReady: ${err.message}`);
       // socket.emit("error", { message: `Error occurred: ${err.message}` });
       // return { success: false, message: `Error occurred: ${err.message}` };
     }
