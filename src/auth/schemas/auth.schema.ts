@@ -34,6 +34,7 @@ export class Auth extends Document {
 
     @Prop({default : null})
     nickname : string;
+
 }
 
 export const AuthSchema  = SchemaFactory.createForClass(Auth);

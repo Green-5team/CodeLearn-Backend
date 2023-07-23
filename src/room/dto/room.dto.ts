@@ -97,6 +97,8 @@ export class UserInfoDto {
     @IsNumber()
     @ApiProperty()
     level : number;
+
+
   
 }
 

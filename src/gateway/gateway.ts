@@ -1,3 +1,4 @@
+import { RoomAndUser } from './../room/schemas/roomanduser.schema';
 import { ObjectId } from 'mongoose';
 import { Logger, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -11,6 +12,7 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
+  WsResponse,
 } from '@nestjs/websockets';
 import { Namespace, Socket } from 'socket.io';
 import { RoomAndUserDto, RoomCreateDto, RoomStatusChangeDto } from 'src/room/dto/room.dto';
@@ -130,4 +132,27 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         }
         return {success : true}  
         }
+
+    @SubscribeMessage('ready')
+    async handleReadyUser(
+        @MessageBody('title') title: string,
+        @ConnectedSocket() socket: ExtendedSocket
+        ): Promise<{ success: boolean }> {
+        try {
+            const room_id = await this.roomService.getRoomIdFromTitle(title);
+            const user_id = await this.userService.userInfoFromEmail(socket.decoded.email);
+            const roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
+        
+            await this.roomService.setUserStatusToReady(room_id, user_id);
+        
+            if (roomAndUserInfo !== false) {
+                await this.nsp.to(title).emit('room-status-changed', roomAndUserInfo);
+            }
+            return { success: true };
+        } catch (error) {
+                // Handle any errors that may occur during the process
+                console.error('Error handling ready user:', error);
+                return { success: false };
+            }
+        }    
 }
