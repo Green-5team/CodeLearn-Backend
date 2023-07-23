@@ -195,10 +195,11 @@ export class RoomService {
          await this.memberCountDown(room_id);
     }
 
-    async setUserStatusToReady(room_id: ObjectId, user_id: ObjectId): Promise<void> {
+    async setUserStatusToReady(room_id: ObjectId, user_id: ObjectId): Promise<boolean> {
         if (!user_id) {
             throw new Error('user_id is undefined');
         }
+    
         const roomAndUser = await this.roomAndUserModel.findOne({ room_id: room_id }).exec();
     
         if (!roomAndUser) {
@@ -212,8 +213,9 @@ export class RoomService {
         }
     
         roomAndUser.ready_status[userIndex] = roomAndUser.ready_status[userIndex] ? false : true;
-        
         await roomAndUser.save();
+    
+        return roomAndUser.ready_status[userIndex];
     }
     
 }

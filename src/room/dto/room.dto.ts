@@ -116,5 +116,9 @@ export class RoomStatusChangeDto {
     @ApiProperty()
     user_info : (UserInfoDto | EmptyOrLock)[]
 
+    @IsBoolean()
+    @ApiProperty()
+    newStatus: boolean;
+
 }
 

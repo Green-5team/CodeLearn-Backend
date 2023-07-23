@@ -131,28 +131,31 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
             await this.nsp.to(title).emit('room-status-changed', roomAndUserInfo);   
         }
         return {success : true}  
-        }
+    }
 
     @SubscribeMessage('ready')
     async handleReadyUser(
         @MessageBody('title') title: string,
         @ConnectedSocket() socket: ExtendedSocket
-        ): Promise<{ success: boolean }> {
+    ): Promise<{ success: boolean; newStatus?: boolean; }> {
         try {
             const room_id = await this.roomService.getRoomIdFromTitle(title);
             const user_id = await this.userService.userInfoFromEmail(socket.decoded.email);
+            const newStatus = await this.roomService.setUserStatusToReady(room_id, user_id);
+            
             const roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
-        
-            await this.roomService.setUserStatusToReady(room_id, user_id);
-        
-            if (roomAndUserInfo !== false) {
+            
+            if (roomAndUserInfo instanceof RoomStatusChangeDto) {
+                roomAndUserInfo.newStatus = newStatus; // set newStatus in RoomStatusChangeDto
                 await this.nsp.to(title).emit('room-status-changed', roomAndUserInfo);
-            }
-            return { success: true };
-        } catch (error) {
-                // Handle any errors that may occur during the process
-                console.error('Error handling ready user:', error);
+                return { success: true, newStatus };
+            } else {
                 return { success: false };
             }
-        }    
+        } catch (error) {
+            console.error('Error handling ready user:', error);
+            return { success: false };
+        }
+    }  
+
 }
