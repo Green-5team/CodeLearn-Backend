@@ -1,7 +1,7 @@
 import { Socket } from 'socket.io';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { ApiProperty } from '@nestjs/swagger';
+
 
 @Schema()
 export class RoomAndUser extends Document {
