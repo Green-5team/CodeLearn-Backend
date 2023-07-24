@@ -43,27 +43,27 @@ export class RoomCreateDto {
 
     @IsNotEmpty()
     @IsString()
-    @ApiProperty()
+    @ApiProperty({description: "방 제목", required: true, type: String})
     title : string;
 
     @IsNotEmpty()
     @IsNumber()
-    @ApiProperty()
+    @ApiProperty({description: "방에 참여할 수 있는 최대 멤버 수", required: true, type: Number})
     max_members : number;
 
     @IsEnum(RoomStatus)
-    @ApiProperty()
+    @ApiProperty({description: "방 현재 상태", required: true, type: () => RoomStatus})
     status : RoomStatus;
 
-    @ApiProperty()
+    @ApiProperty({description: "방 비밀번호", type: String})
     @Validate(IsPasswordRequiredConstraint,{ message: 'password should not be empty' })
     password : string;
 
-    @ApiProperty()
+    @ApiProperty({description: "방 레벨", required: true, type: Number})
     @IsNotEmpty()
     level : number;
 
-    @ApiProperty()
+    @ApiProperty({description: "방 현재 모드", required: true, type: () => RoomMode})
     @IsEnum(RoomMode)
     mode : RoomMode;
 }
@@ -71,31 +71,30 @@ export class RoomCreateDto {
 export class RoomAndUserDto {
 
     @IsNotEmpty()
-    @ApiProperty()
+    @ApiProperty({description: "방의 ID", required: true, type: String})
     room_id: ObjectId;
   
     @IsNotEmpty()
-    @ApiProperty()
+    @ApiProperty({description: "방 사용자 정보", required: true, type: [String]})
     user_info: string[] ;
 
     @IsNotEmpty()
-    @ApiProperty()
+    @ApiProperty({description: "방 사용자의 준비 상태", required: true, type: [Boolean]})
     ready_status: boolean[];
 
 }
 
 export class UserInfoDto {
 
-
-    @ApiProperty()
+    @ApiProperty({description: "사용자의 닉네임", type: String})
     nickname : string;
   
     @IsBoolean()
-    @ApiProperty()
+    @ApiProperty({description: "사용자의 상태", type: Boolean})
     status : boolean;
   
     @IsNumber()
-    @ApiProperty()
+    @ApiProperty({description: "사용자의 레벨", type: Number})
     level : number;
   
 }
@@ -103,21 +102,21 @@ export class UserInfoDto {
 export class RoomStatusChangeDto {
 
     @IsNotEmpty()
-    @ApiProperty()
+    @ApiProperty({description: "방 제목", required: true, type: String})
     title : string ;
 
     @IsNotEmpty()
-    @ApiProperty()
+    @ApiProperty({description: "방에 참여한 유저 수", required: true, type: Number})
     member_count: number;
 
     @IsArray()
-    @ApiProperty()
+    @ApiProperty({description: "방 사용자 정보", required: true})
     user_info : (UserInfoDto | EmptyOrLock)[]
 
     @IsOptional()
     @IsBoolean()
-    @ApiProperty()
-    newStatus: boolean;
+    @ApiProperty({description: "현재 준비 상태", type: Boolean})
+    currentStatus: boolean;
 
 }
 

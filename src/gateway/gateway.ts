@@ -134,23 +134,24 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     async handleReadyUser(
         @MessageBody('title') title: string,
         @ConnectedSocket() socket: ExtendedSocket
-    ): Promise<{ payload: {success: boolean; newStatus?: boolean;}}> {
+    ): Promise<{ success: boolean; payload:{ readyStatus?: boolean;}}> {
+        let currentStatus: boolean;
         try {
             const room_id = await this.roomService.getRoomIdFromTitle(title);
             const user_id = await this.userService.userInfoFromEmail(socket.decoded.email);
-            const newStatus = await this.roomService.setUserStatusToReady(room_id, user_id);
+            const currentStatus = await this.roomService.setUserStatusToReady(room_id, user_id);
             const roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
                 
             if (roomAndUserInfo instanceof RoomStatusChangeDto) {
-                roomAndUserInfo.newStatus = newStatus; // set newStatus in RoomStatusChangeDto
-                await this.nsp.to(title).emit('room-status-changed', roomAndUserInfo);
-                return { payload: { success: true, newStatus }};
+                roomAndUserInfo.currentStatus = currentStatus;
+                await this.nsp.to(title).emit('status-changed', roomAndUserInfo);
+                return { success: true, payload: { readyStatus : currentStatus }};
             } else {
-                return { payload: { success: false } };
+                return { success: false, payload: { readyStatus : currentStatus }};
             }
         } catch (error) {
             console.error('Error handling ready user:', error);
-            return { payload: { success: false } };
+            return { success: false, payload: { readyStatus : currentStatus }};
         }
     }
 }
