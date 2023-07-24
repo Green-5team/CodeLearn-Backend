@@ -17,42 +17,42 @@ export enum RoomMode {
 })
 
 export class Room extends Document {
-    @ApiProperty()
+    @ApiProperty({ description: "방 제목", required: true, type: String })
     @Prop({
         required: true,
         unique: true,
     })
     title : string;
 
-    @ApiProperty()
+    @ApiProperty({ description: "방에 있는 멤버의 수", type: Number, default: 1 })
     @Prop({ default: 1 })
     member_count : number;
 
-    @ApiProperty()
-    @Prop({required: true})
+    @ApiProperty({ description: "방에 참여할 수 있는 최대 멤버 수", required: true, type: Number })
+    @Prop({ required: true })
     max_members : number;
 
-    @ApiProperty()
-    @Prop({required: true})
+    @ApiProperty({ description: "방의 현재 상태 : PUBLIC PRIVATE", required: true })
+    @Prop({ required: true })
     status : RoomStatus;
     
-    @ApiProperty()
+    @ApiProperty({ description: "방에 접근하기 위한 비밀번호", type: String })
     @Prop()
     password : string;
     
-    @ApiProperty()
-    @Prop({required: true, default : 1})
+    @ApiProperty({ description: "방 레벨", required: true, type: Number, default: 1 })
+    @Prop({ required: true, default: 1 })
     level : number;
 
-    @ApiProperty()
-    @Prop({required: true, default : 'STUDY'})
+    @ApiProperty({ description: "방의 현재 모드 : PUBLIC, PRIVATE", required: true, default: 'STUDY' })
+    @Prop({ required: true, default: 'STUDY' })
     mode : RoomMode;
 
-    @ApiProperty()
-    @Prop({default : true})
+    @ApiProperty({ description: "방이 준비 상태인지 여부", type: Boolean, default: true })
+    @Prop({ default: true })
     ready : boolean; 
 
-    @ApiProperty()
+    @ApiProperty({ description: "방 생성된 시간", type: Date })
     @Prop()
     create_time : Date;
 }
