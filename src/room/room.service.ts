@@ -222,4 +222,26 @@ export class RoomService {
         )
         return true;
     }
+
+    async setUserStatusToReady(room_id: ObjectId, user_id: ObjectId): Promise<boolean> {
+        if (!user_id) {
+            throw new Error('user_id is undefined');
+        }
+
+        const roomAndUser = await this.roomAndUserModel.findOne({ room_id: room_id }).exec();
+
+        if (!roomAndUser) {
+            throw new Error(`No RoomAndUser found for room id ${room_id}`);
+        }
+
+        const userIndex = roomAndUser.user_info.findIndex((uid) => uid.toString() === user_id.toString());
+
+        if (userIndex === -1) {
+            throw new Error(`User ID ${user_id} not found in the room ${room_id}`);
+        }
+
+        roomAndUser.ready_status[userIndex] = roomAndUser.ready_status[userIndex] ? false : true;
+        await roomAndUser.save();
+        return roomAndUser.ready_status[userIndex];
+    }
 }
