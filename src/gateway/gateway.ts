@@ -71,10 +71,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
       @MessageBody() roomCreateDto: RoomCreateDto,
       @ConnectedSocket() socket: ExtendedSocket
     ) :Promise <{success : boolean, payload : {roomInfo : RoomStatusChangeDto | boolean}} > {
-        const room = await this.roomService.createRoom(roomCreateDto, socket.decoded.email, socket.id);
+        const room = await this.roomService.createRoom(roomCreateDto, socket.decoded.email);
         await room.save(); 
         const user_id = await this.userService.userInfoFromEmail(socket.decoded.email);
-        room.socket_id = socket.id; 
         socket.user_id = user_id;
         socket.join(room.title); 
         const room_id = await this.roomService.getRoomIdFromTitle(roomCreateDto.title);

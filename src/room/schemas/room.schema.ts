@@ -55,10 +55,6 @@ export class Room extends Document {
     @ApiProperty()
     @Prop()
     create_time : Date;
-
-    @ApiProperty()
-    @Prop()
-    socket_id : string;
 }
 
 export const RoomSchemas  = SchemaFactory.createForClass(Room);

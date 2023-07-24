@@ -12,7 +12,7 @@ async function bootstrap() {
   .setTitle('Code-Learn API')
   .setDescription('code-learn project from krafton jungle')
   .setVersion('0.0.1')
-  .addTag('User')
+  .addTag('Auth')
   .addTag('Room')
   .build();
 

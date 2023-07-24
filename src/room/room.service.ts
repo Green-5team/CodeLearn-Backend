@@ -16,7 +16,7 @@ export class RoomService {
         @InjectModel(Auth.name) private readonly authModel: Model<Auth>,
     ) {}
     
-    async createRoom(room :RoomCreateDto, email : string, socket_id: string) : Promise<Room> {
+    async createRoom(room :RoomCreateDto, email : string) : Promise<Room> {
         let newRoom;
         const found = await this.roomModel.findOne({title : room.title});
         if(found){
@@ -24,10 +24,10 @@ export class RoomService {
         }
         if(room.status == "PRIVATE"){
             const hashedPassword = await bcrypt.hash(room.password, 10);
-            newRoom = new this.roomModel({...room, password : hashedPassword, socket_id : socket_id});
+            newRoom = new this.roomModel({...room, password : hashedPassword});
         }
         else{
-            newRoom = new this.roomModel({...room, socket_id : socket_id});
+            newRoom = new this.roomModel({...room});
         }
         const user = await this.authModel.findOne({email: email}).exec();
 
@@ -68,11 +68,6 @@ export class RoomService {
     async getRoomIdFromTitle(title : string) : Promise<ObjectId> {
         const room = await this.roomModel.findOne({title: title}).exec();
         return room._id;
-    }
-    async getSocketId(room_id : ObjectId) : Promise<string> {
-        const roominfo = await this.roomModel.findOne({_id : room_id}).exec();
-        const socket_id = roominfo.socket_id;
-        return socket_id;
     }
 
     async checkRoomCondition(title_name : string) : Promise<boolean> {

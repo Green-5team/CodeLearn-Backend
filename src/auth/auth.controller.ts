@@ -2,12 +2,12 @@
 import { Body, Controller, Post, HttpCode, HttpStatus, Request , UseGuards, Put, Param} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthDto, CheckDto, SetNicknameDto } from './dto/auth.dto';
-import { AuthGuard } from './auth.guard';
+import { AuthGuard } from '@nestjs/passport';
 import { Public } from 'src/shared/decorators/public.decorator';
+import { ApiTags } from '@nestjs/swagger';
 
 
-
-
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -36,7 +36,7 @@ export class AuthController {
   }
 
   
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard('jwt'))
   @Put('nickname')
   updateNickname(@Request() req, @Body('nickname') nickname: string) {
     const email = req.user.email;
