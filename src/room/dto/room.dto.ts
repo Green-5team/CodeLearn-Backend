@@ -2,9 +2,8 @@ import { IsString, IsNotEmpty, IsNumber, IsArray, IsBoolean } from 'class-valida
 import { IsEnum, IsOptional, Validate, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
 
 import { ApiProperty, ApiTags } from '@nestjs/swagger';
-import { Controller } from '@nestjs/common';
 import { ObjectId } from 'mongoose';
-import { Prop } from '@nestjs/mongoose';
+import { RoomStatus } from '../room.model';
 
 @ValidatorConstraint({ async: false })
 export class IsPasswordRequiredConstraint implements ValidatorConstraintInterface {
@@ -20,13 +19,6 @@ export class IsPasswordRequiredConstraint implements ValidatorConstraintInterfac
     defaultMessage(args: ValidationArguments) {
         return 'Password is required when status is PRIVATE.';
     }
-}
-
-
-export enum RoomStatus {
-    PUBLIC = 'PUBLIC',
-    PRIVATE = 'PRIVATE',
-    ACTIVE = "ACTIVE"
 }
 
 export enum RoomMode {
