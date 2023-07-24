@@ -78,6 +78,7 @@ export class RoomAndUserDto {
 
 export class UserInfoDto {
     
+    
     @ApiProperty()
     nickname : string;
   
