@@ -44,7 +44,7 @@ export class RoomCreateDto {
     max_members : number;
 
     @IsEnum(RoomStatus)
-    @ApiProperty({description: "방 현재 상태", required: true, type: () => RoomStatus})
+    @ApiProperty({description: "방 현재 상태, PUBLIC PRIVATE", required: true})
     status : RoomStatus;
 
     @ApiProperty({description: "방 비밀번호", type: String})
@@ -55,7 +55,7 @@ export class RoomCreateDto {
     @IsNotEmpty()
     level : number;
 
-    @ApiProperty({description: "방 현재 모드", required: true, type: () => RoomMode})
+    @ApiProperty({description: "방 현재 모드, STUDY COOPERATIVE", required: true})
     @IsEnum(RoomMode)
     mode : RoomMode;
 }

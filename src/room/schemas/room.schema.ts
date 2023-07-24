@@ -32,7 +32,7 @@ export class Room extends Document {
     @Prop({ required: true })
     max_members : number;
 
-    @ApiProperty({ description: "방의 현재 상태", required: true, type: () => RoomStatus })
+    @ApiProperty({ description: "방의 현재 상태 : PUBLIC PRIVATE", required: true })
     @Prop({ required: true })
     status : RoomStatus;
     
@@ -44,7 +44,7 @@ export class Room extends Document {
     @Prop({ required: true, default: 1 })
     level : number;
 
-    @ApiProperty({ description: "방의 현재 모드", required: true, type: () => RoomMode, default: 'STUDY' })
+    @ApiProperty({ description: "방의 현재 모드 : PUBLIC, PRIVATE", required: true, default: 'STUDY' })
     @Prop({ required: true, default: 'STUDY' })
     mode : RoomMode;
 
