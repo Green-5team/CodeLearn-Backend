@@ -209,12 +209,11 @@ export class RoomService {
         const userIndex = roomAndUser.user_info.findIndex((uid) => uid.toString() === user_id.toString());
     
         if (userIndex === -1) {
-            throw new Error(`User with ID ${user_id} not found in the room ${room_id}`);
+            throw new Error(`User ID ${user_id} not found in the room ${room_id}`);
         }
     
         roomAndUser.ready_status[userIndex] = roomAndUser.ready_status[userIndex] ? false : true;
         await roomAndUser.save();
-    
         return roomAndUser.ready_status[userIndex];
     }
 }

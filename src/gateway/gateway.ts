@@ -161,7 +161,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
                 return { success: false, payload: { readyStatus : currentStatus }};
             }
         } catch (error) {
-            console.error('Error handling ready user:', error);
+            console.error('Error handling ready user', error);
             return { success: false, payload: { readyStatus : currentStatus }};
         }
     }

@@ -107,7 +107,7 @@ export class RoomStatusChangeDto {
 
     @IsOptional()
     @IsBoolean()
-    @ApiProperty({description: "현재 준비 상태", type: Boolean})
+    @ApiProperty({description: "현재 준비상태", type: Boolean})
     currentStatus: boolean;
 
 }
