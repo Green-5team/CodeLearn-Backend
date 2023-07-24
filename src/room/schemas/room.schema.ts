@@ -4,7 +4,7 @@ import { Document, SchemaOptions } from "mongoose";
 
 export enum RoomStatus {
     PUBLIC = 'PUBLIC',
-    PRIVATE = 'PRIVATE'
+    PRIVATE = 'PRIVATE',
 }
 
 export enum RoomMode {

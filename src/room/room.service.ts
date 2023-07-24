@@ -70,6 +70,11 @@ export class RoomService {
         return room._id;
     }
 
+    async getTitleFromRoomId(roomID : ObjectId) : Promise<string> {
+        const roomInfo = await this.roomModel.findOne({_id: roomID}).exec();
+        return roomInfo.title;
+    }
+
     async checkRoomCondition(title_name : string) : Promise<boolean> {
         console.log(title_name);
         const room = await this.roomModel.findOne({title : title_name}).exec();
