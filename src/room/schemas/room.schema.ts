@@ -52,7 +52,7 @@ export class Room extends Document {
     @Prop({ default: true })
     ready : boolean; 
 
-    @ApiProperty({ description: "방이 생성된 시간", type: Date })
+    @ApiProperty({ description: "방 생성된 시간", type: Date })
     @Prop()
     create_time : Date;
 }

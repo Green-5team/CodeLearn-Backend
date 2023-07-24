@@ -31,7 +31,7 @@ export class AuthController {
   }
 
   @Public()
-  @ApiOperation({ summary: '이메일 체크'})
+  @ApiOperation({ summary: 'email 체크'})
   @HttpCode(HttpStatus.OK)
   @Post("checkemail")
   signUpcheck(@Body() checkDto: CheckDto) {
@@ -40,7 +40,7 @@ export class AuthController {
 
   
   @UseGuards(AuthGuard('jwt'))
-  @ApiOperation({ summary: '닉네임 설정'})
+  @ApiOperation({ summary: '닉네임설정'})
   @Put('nickname')
   updateNickname(@Request() req, @Body('nickname') nickname: string) {
     const email = req.user.email;

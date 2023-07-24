@@ -63,7 +63,7 @@ export class RoomCreateDto {
 export class RoomAndUserDto {
 
     @IsNotEmpty()
-    @ApiProperty({description: "방의 ID", required: true, type: String})
+    @ApiProperty({description: "방 ID", required: true, type: String})
     room_id: ObjectId;
   
     @IsNotEmpty()
@@ -102,7 +102,7 @@ export class RoomStatusChangeDto {
     member_count: number;
 
     @IsArray()
-    @ApiProperty({description: "방 사용자 정보", required: true})
+    @ApiProperty({description: "방의 사용자 정보", required: true})
     user_info : (UserInfoDto | EmptyOrLock)[]
 
     @IsOptional()
