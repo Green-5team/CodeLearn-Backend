@@ -8,6 +8,7 @@ import mongoose, { Model,Mongoose,ObjectId,ObjectIdSchemaDefinition,Types } from
 import * as bcrypt from 'bcrypt';
 import { UsersService } from 'src/users/users.service';
 import { Auth } from 'src/auth/schemas/auth.schema';
+
 @Injectable()
 export class RoomService {
     constructor(
@@ -77,8 +78,11 @@ export class RoomService {
     
     async getRoomIdFromTitle(title : string) : Promise<ObjectId> {
         const room = await this.roomModel.findOne({title: title}).exec();
-        return room._id;
+    if (!room) {
+        throw new Error(`No room found with title: ${title}`);
     }
+    return room._id;
+}
 
     async getTitleFromRoomId(roomID : ObjectId) : Promise<string> {
         const roomInfo = await this.roomModel.findOne({_id: roomID}).exec();
@@ -250,4 +254,29 @@ export class RoomService {
         return { nickname: user.nickname, status: roomAndUser.ready_status[userIndex] };
     }
 
+    async findRoomForQuickJoin(email: string): Promise<string | null> {
+        const user_id = await this.userService.userInfoFromEmail(email);
+        const roomAndUser = await this.roomAndUserModel.findOne({
+            user_info: "EMPTY"
+        }).exec();
+        
+        if (roomAndUser) {
+            return roomAndUser.room_id.toString();
+        } else {
+            return null;
+        }
+    }
+
+    async isUserInRoom(room_id : ObjectId, user_id : ObjectId) : Promise<boolean> {
+    const roomAndUser = await this.roomAndUserModel.findOne({room_id : room_id}).exec();
+    if (roomAndUser) {
+        return roomAndUser.user_info.includes(user_id.toString());
+    }
+    return false;
+    }
+    async getRoomById(room_id: string): Promise<Room> {
+        const room = await this.roomModel.findById(room_id).exec();
+ 
+        return room;
+    }  
 }

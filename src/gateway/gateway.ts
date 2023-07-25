@@ -1,5 +1,6 @@
+import { RoomAndUserDto } from './../room/dto/room.dto';
 import { RoomAndUser } from './../room/schemas/roomanduser.schema';
-import { ObjectId } from 'mongoose';
+import mongoose, { ObjectId } from 'mongoose';
 import { Logger, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -14,10 +15,11 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Namespace, Socket } from 'socket.io';
-import { RoomAndUserDto, RoomCreateDto, RoomStatusChangeDto } from 'src/room/dto/room.dto';
+import { RoomCreateDto, RoomStatusChangeDto } from 'src/room/dto/room.dto';
 import { RoomService } from 'src/room/room.service';
 import { UsersService } from 'src/users/users.service';
 import { jwtSocketIoMiddleware } from './jwt-socket-io.middleware';
+import { CheckDto } from 'src/auth/dto/auth.dto';
 
 
 
@@ -157,30 +159,71 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         return {success : true, payload : {owner : userIndex}}  
     }
 
+    @SubscribeMessage('quick-join')
+    async handleQuickJoinRoom( 
+    @MessageBody('email') email: string,
+    @ConnectedSocket() socket: ExtendedSocket): 
+    Promise<{ success: boolean, payload: { roomInfo: RoomStatusChangeDto | boolean } }> {
+
+    const room_id = await this.roomService.findRoomForQuickJoin(email);
+    
+    if (!room_id) {
+        return { success: false, payload: { roomInfo: false } };
+    }
+
+    const room = await this.roomService.getRoomById(room_id); 
+    const title = room.title;
+
+    this.logger.log(`${socket.id} : 방에 입장 준비 중입니다!`);
+
+    socket.join(title);
+    this.logger.log(`${socket.id} : Room enter!`);
+
+    const user_id = await this.userService.userInfoFromEmail(email);
+    const objectId = Object(room_id);  // Convert string to ObjectId
+    
+    const isUserInRoom = await this.roomService.isUserInRoom(objectId, user_id);
+    if (isUserInRoom) {
+        this.logger.log(`${socket.id} : 사용자가 이미 방에 입장했습니다!`);
+        return { success: false, payload: { roomInfo: false } };
+    }
+    
+    await this.roomService.changeRoomStatusForJoin(objectId, user_id);
+    this.logger.log(`${socket.id} : 방에 입장 완료하였습니다!`);
+    const roomAndUserInfo = await this.roomService.getRoomInfo(objectId);
+    socket.user_id = user_id;
+    socket.room_id = objectId;
+    this.nsp.to(title).emit('room-status-changed', roomAndUserInfo);
+    this.nsp.emit('enter-room', "enter-room!");
+    return { success: true, payload: { roomInfo: roomAndUserInfo } };
+    }
+    
+
     @SubscribeMessage('ready')
     async handleReadyUser(
-    @MessageBody('title') title: string,
-    @ConnectedSocket() socket: ExtendedSocket
+        @MessageBody('title') title: string,
+        @ConnectedSocket() socket: ExtendedSocket
     ): Promise<{ success: boolean; payload:{ nickname?: string, status?: boolean;}}> {
     try {
         const room_id = await this.roomService.getRoomIdFromTitle(title);
         const user_id = await this.userService.userInfoFromEmail(socket.decoded.email);
         const userStatus = await this.roomService.setUserStatusToReady(room_id, user_id);
         const roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
-
-        
         if (roomAndUserInfo instanceof RoomStatusChangeDto) {
             roomAndUserInfo.user_info
             userStatus.status;
             await this.nsp.to(title).emit('room-status-changed', roomAndUserInfo);
             return { success: true, payload: { nickname: userStatus.nickname, status : userStatus.status }};
         } else {
+            
             return { success: false, payload: { nickname: userStatus.nickname, status : userStatus.status }};
         }
     } catch (error) {
-        console.error('Error handling ready user', error);
+        
         return { success: false, payload: { nickname: undefined, status : undefined }};
     }
-  }
+    }
 
+    
+  
 }
