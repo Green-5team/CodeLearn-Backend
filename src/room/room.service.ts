@@ -1,13 +1,15 @@
-import { IsEmail } from 'class-validator';
 import { RoomAndUser } from './schemas/roomanduser.schema';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { RoomCreateDto, RoomAndUserDto, EmptyOrLock, UserInfoDto, RoomStatusChangeDto } from './dto/room.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Room } from './schemas/room.schema'
-import mongoose, { Model,Mongoose,ObjectId,ObjectIdSchemaDefinition,Types } from 'mongoose';
+import { Model,ObjectId } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from 'src/users/users.service';
 import { Auth } from 'src/auth/schemas/auth.schema';
+import { Mutex } from 'async-mutex';//mutex를 사용하기 위해서 import npm install async-mutex
+import { release } from 'os';
+const mutex = new Mutex();//Mutex 객체 생성
 @Injectable()
 export class RoomService {
     constructor(
@@ -103,21 +105,26 @@ export class RoomService {
         }
     }
 
-    async memberCountDown(room_id : ObjectId) : Promise<{success : boolean}> {
+    async memberCountDown(room_id : ObjectId) : Promise<{success : boolean, roomDeleted: boolean}> {
         const room = await this.roomModel.findOneAndUpdate({_id :room_id}, { $inc: { member_count: -1 }},  { new: true } );
         if (!room) {
             throw new Error(`No room found for id ${room_id}`);
         }
         if(room.member_count === 0 ){
             await this.roomAndUserModel.deleteOne({room_id :room_id});
-            await this.roomModel.findOneAndUpdate({_id :room_id}, {ready : false});
+            await this.roomModel.deleteOne({_id :room_id}); //해당 부분 데이터의 일관성이 잘 못 되어 수정
+            return {success : true, roomDeleted: true}
         }
-        return {success : true};
+        return {success : true, roomDeleted: false};
     }
 
     async changeRoomStatusForJoin(room_id : ObjectId, user_id : ObjectId) : Promise<void> {
 
+
+        const release = await mutex.acquire();
         // 해당 방에 대한 정보를 얻음
+        
+        try{
         const roomAndUserInfo = await this.roomAndUserModel.findOne({room_id : room_id}).exec();
 
         if (!roomAndUserInfo) {
@@ -136,12 +143,15 @@ export class RoomService {
             }  },
         )
         await this.memberCountUp(room_id);
+        } finally {
+            release();
+        }      
     }
+
 
     async getRoomInfo(room_id : ObjectId) : Promise<RoomStatusChangeDto | boolean> {
         // room 의 변경사항이 생겼을 때, 사용할 dto 
         const roomStatusChangeDto = new RoomStatusChangeDto;
-
         const room = await this.roomModel.findOne({_id : room_id}).exec();
         const roomanduser = await this.roomAndUserModel.findOne({room_id : room_id}).exec();
 
@@ -179,32 +189,42 @@ export class RoomService {
     }
 
     async changeRoomStatusForLeave (room_id : ObjectId, user_id : ObjectId) : Promise<string> {
-        // 디비에 해당 유저를 empty 로 바꾸고
+        
+        const release = await mutex.acquire();//마지막 유저 두 명이 동시에 나갈 경우 동시성 문제가 발생할 수 있으므로 mutex를 사용함
+        try{// 디비에 해당 유저를 empty 로 바꾸고
         // 방 인원수도 바꿔줌.
          // 해당 방에 대한 정보를 얻음
-         const roomAndUserInfo = await this.roomAndUserModel.findOne({room_id : room_id}).exec();
+            const roomAndUserInfo = await this.roomAndUserModel.findOne({room_id : room_id}).exec();
 
-         if (!roomAndUserInfo) {
+            if (!roomAndUserInfo) {
              // Handle the case where roomanduser is undefined
              return `No RoomAndUser found for room id ${room_id}`;
-         }
+            }
          
-         // 방 정보에서 첫번째로 empty인 부분을 찾음
-         if (!user_id) {
+         
+            if (!user_id) {
             // Handle the case where user_id is undefined
             return 'user_id is undefined';
-        }
+            }
+            // 방 정보에서 첫번째로 empty인 부분을 찾음
+            const user_index = await roomAndUserInfo.user_info.indexOf(user_id.toString());
+     
 
-        const user_index = await roomAndUserInfo.user_info.indexOf(user_id.toString());
-        await this.roomAndUserModel.findOneAndUpdate(
-             { room_id : room_id },
-             { $set: { 
+            await this.roomAndUserModel.findOneAndUpdate(
+            { room_id : room_id },
+            { $set: { 
                  [`user_info.${user_index}`]:  "EMPTY",
                  [`ready_status.${user_index}`]:  false
-             }  },
-         )
-         await this.memberCountDown(room_id);
-         return 'Success';
+            }  },
+        )
+        const result = await this.memberCountDown(room_id);
+        if (result.roomDeleted) {
+            return '유저가 다 떠났기 때문에 방이 삭제되었습니다.'
+        }
+        return 'Success';
+    } finally {
+        release();
+        }
     }
 
     async checkWrongDisconnection (email : string) : Promise<boolean> {
@@ -242,6 +262,8 @@ export class RoomService {
 
 
     async setUserStatusToReady(room_id: ObjectId, user_id: ObjectId): Promise<{ nickname: string, status: boolean }> {
+        const release = await mutex.acquire(); //동시의 ready요청을 한 경우에 동시성 문제가 발생할 수 있음 따라서 mutex를 import하여 lock을 
+    try {
         const roomAndUser = await this.roomAndUserModel.findOne({ room_id: room_id }).exec();
         const userIndex = roomAndUser.user_info.findIndex((uid) => uid === user_id.toString());
         const user = await this.authModel.findOne({ _id: user_id });
@@ -249,6 +271,9 @@ export class RoomService {
         roomAndUser.ready_status[userIndex] = roomAndUser.ready_status[userIndex] ? false : true;
         await roomAndUser.save();
         return { nickname: user.nickname, status: roomAndUser.ready_status[userIndex] };
+    } finally {
+        release();
+        }           
     }
 
     async getResult(room_id: ObjectId, index : number) {

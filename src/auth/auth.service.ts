@@ -96,8 +96,6 @@ export class AuthService {
         throw new BadRequestException('해당 닉네임은 이미 존재하는 닉네임입니다.');
       }
 
-      
-      
       const user = await this.authModel.findOne({ email: email });
       user.nickname = nickname;
       await user.save();

@@ -1,7 +1,5 @@
-import { RoomAndUser } from './../room/schemas/roomanduser.schema';
 import { ObjectId } from 'mongoose';
 import { Logger, UseGuards } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import * as jwt from 'jsonwebtoken';
 import {
@@ -29,8 +27,8 @@ interface ExtendedSocket extends Socket {
 
 @ApiTags('Room')
 @UseGuards(jwtSocketIoMiddleware)
-@WebSocketGateway({cors : true, namespace: 'room'})
-export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
+    @WebSocketGateway({cors : true, namespace: 'room'})
+    export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     constructor(private readonly roomService: RoomService,
         private readonly userService: UsersService, 
     ) {}
@@ -84,14 +82,14 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
       @ConnectedSocket() socket: ExtendedSocket
     ) :Promise <{success : boolean, payload : {roomInfo : RoomStatusChangeDto | boolean}} > {
         const room = await this.roomService.createRoom(roomCreateDto, socket.decoded.email);
-        await room.save(); 
+            await room.save(); 
         const user_id = await this.userService.userInfoFromEmail(socket.decoded.email);
-        socket.user_id = user_id;
-        socket.join(room.title); 
+            socket.user_id = user_id;
+            socket.join(room.title); 
         const room_id = await this.roomService.getRoomIdFromTitle(roomCreateDto.title);
-        socket.room_id = room_id;
+            socket.room_id = room_id;
         const roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
-        this.nsp.emit('room-created', "room created!");
+            this.nsp.emit('room-created', "room created!");
         return {success : true,  payload: { roomInfo : roomAndUserInfo}}
     }
 
@@ -179,8 +177,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     } catch (error) {
         console.error('Error handling ready user', error);
         return { success: false, payload: { nickname: undefined, status : undefined }};
+        }
     }
-  }
 
     @SubscribeMessage('reviewList')
     async handleReviewShow(
@@ -196,8 +194,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
 
     @SubscribeMessage('reviewUser')
     async handleReviewUser(
-    @MessageBody('title') title : string,  @MessageBody('index') index : number,
-    @ConnectedSocket() socket: ExtendedSocket
+        @MessageBody('title') title : string,  @MessageBody('index') index : number,
+        @ConnectedSocket() socket: ExtendedSocket
     ): Promise<{success : boolean, payload : {roomInfo : RoomStatusChangeDto | boolean}} >{
 
         await this.roomService.getResult(socket.room_id, index);
@@ -206,5 +204,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         await this.nsp.to(title).emit('room-status-changed', roomAndUserInfo);
 
        return {success : true, payload: { roomInfo : roomAndUserInfo}}  
+    }
+
+    @SubscribeMessage('roomlist')
+    async handleRoomlist(@ConnectedSocket() socket: ExtendedSocket): Promise<void> {
+        const roomList = await this.roomService.getRoomList();
+    socket.emit('roomlist', { success: true, payload: { roomList } });
     }
 }
