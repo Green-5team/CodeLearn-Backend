@@ -8,8 +8,12 @@ import mongoose, { Model,Mongoose,ObjectId,ObjectIdSchemaDefinition,Types } from
 import * as bcrypt from 'bcrypt';
 import { UsersService } from 'src/users/users.service';
 import { Auth } from 'src/auth/schemas/auth.schema';
+
 @Injectable()
 export class RoomService {
+    getResult(room_id: mongoose.Schema.Types.ObjectId, index: number) {
+        throw new Error('Method not implemented.');
+    }
     constructor(
         private readonly userService: UsersService,
         @InjectModel(Room.name) private readonly roomModel: Model<Room>,
@@ -44,9 +48,11 @@ export class RoomService {
             else return EmptyOrLock.LOCK;
         })
 
+        console.log("create and after room status : ", infoArray);
+
         roomAndUserDto.user_info = infoArray;
 
-        const AllFalseStatusArray = Array.from({length : 10}, (_,index) => {
+        const readyStatusArray = Array.from({length : 10}, (_,index) => {
             if (index < 10) return false;
         })
 
@@ -55,10 +61,8 @@ export class RoomService {
             if (index < 10) return false;
         })
 
-        roomAndUserDto.ready_status = AllFalseStatusArray;
+        roomAndUserDto.ready_status = readyStatusArray;
         roomAndUserDto.owner = ownerArray;
-        roomAndUserDto.solved = AllFalseStatusArray; 
-        roomAndUserDto.review = AllFalseStatusArray;
         await this.saveRoomAndUser(roomAndUserDto);
 
         return newRoom.save();
@@ -69,7 +73,7 @@ export class RoomService {
         await newInfoForRoom.save();
     }
 
-    async getRoomList() : Promise<Room[]> {
+    async getRoomList(req) : Promise<Room[]> {
         const rooms = await this.roomModel.find().exec();
         const result = await rooms.filter(room => room.ready === true);
         return result;
@@ -77,8 +81,11 @@ export class RoomService {
     
     async getRoomIdFromTitle(title : string) : Promise<ObjectId> {
         const room = await this.roomModel.findOne({title: title}).exec();
-        return room._id;
+    if (!room) {
+        throw new Error(`No room found with title: ${title}`);
     }
+    return room._id;
+}
 
     async getTitleFromRoomId(roomID : ObjectId) : Promise<string> {
         const roomInfo = await this.roomModel.findOne({_id: roomID}).exec();
@@ -164,8 +171,7 @@ export class RoomService {
                 userInfoDto.level = user.level;
                 userInfoDto.status = roomanduser.ready_status[index];
                 userInfoDto.owner = roomanduser.owner[index];
-                userInfoDto.solved = roomanduser.solved[index];
-                userInfoDto.review = roomanduser.review[index];
+
                 return userInfoDto;
               }
             })
@@ -251,17 +257,29 @@ export class RoomService {
         return { nickname: user.nickname, status: roomAndUser.ready_status[userIndex] };
     }
 
-    async getResult(room_id: ObjectId, index : number) {
+    async findRoomForQuickJoin(email: string): Promise<string | null> {
+        const user_id = await this.userService.userInfoFromEmail(email);
+        const roomAndUser = await this.roomAndUserModel.findOne({
+            user_info: "EMPTY"
+        }).exec();
         
-        const roomInfo = await this.roomAndUserModel.findOne({ room_id: room_id }).exec();
-        console.log(roomInfo);
-        
-        roomInfo.review[index] = true;
-        try {
-            await roomInfo.save();
-        } catch {
-            return false;
+        if (roomAndUser) {
+            return roomAndUser.room_id.toString();
+        } else {
+            return null;
         }
-        return true;
-    }   
+    }
+
+    async isUserInRoom(room_id : ObjectId, user_id : ObjectId) : Promise<boolean> {
+    const roomAndUser = await this.roomAndUserModel.findOne({room_id : room_id}).exec();
+    if (roomAndUser) {
+        return roomAndUser.user_info.includes(user_id.toString());
+    }
+    return false;
+    }
+    async getRoomById(room_id: string): Promise<Room> {
+        const room = await this.roomModel.findById(room_id).exec();
+ 
+        return room;
+    }  
 }
