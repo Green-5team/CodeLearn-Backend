@@ -274,6 +274,7 @@ export class RoomService {
     }
     return false;
     }
+    
     async getRoomById(room_id: string): Promise<Room> {
         const room = await this.roomModel.findById(room_id).exec();
  

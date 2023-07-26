@@ -119,3 +119,8 @@ export class RoomStatusChangeDto {
 
 }
 
+export class RoomListDto {
+    
+    readonly title : string;
+        
+}
