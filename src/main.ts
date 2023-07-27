@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { SocketIoAdapter } from './gateway/socket-io.adapter';
 
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {cors : true});
   app.useGlobalPipes(new ValidationPipe());

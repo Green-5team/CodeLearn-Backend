@@ -6,6 +6,11 @@ import { ConfigModule } from "@nestjs/config";
 import { PassportModule } from '@nestjs/passport';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { CodingTestService } from './codingtest/codingtest.service';
+import { CodingtestModule } from './codingtest/codingtest.module';
+import { HttpModule } from '@nestjs/axios';
+
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -17,7 +22,10 @@ import { UsersModule } from './users/users.module';
     RoomModule,
     AuthModule,
     UsersModule,
-    PassportModule
+    PassportModule,
+    CodingtestModule,
+    HttpModule,
+    RoomModule
   ],
   controllers: [],
   providers: []

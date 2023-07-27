@@ -1,4 +1,3 @@
-
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
@@ -9,7 +8,6 @@ import { RoomController } from './room.controller';
 import { RoomService } from './room.service';
 import { Room, RoomSchemas } from './schemas/room.schema'; 
 import { RoomAndUser, RoomAndUserSchema } from './schemas/roomanduser.schema';
-
 @Module({
   imports: [  
     PassportModule.register({ defaultStrategy: 'jwt' }),

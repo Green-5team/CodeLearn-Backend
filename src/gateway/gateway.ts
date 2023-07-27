@@ -22,13 +22,12 @@ import { jwtSocketIoMiddleware } from './jwt-socket-io.middleware';
 import { CheckDto } from 'src/auth/dto/auth.dto';
 
 
-
 interface ExtendedSocket extends Socket {
     decoded : {email :string},
     user_id : ObjectId,
+    nickname : String,
     room_id : ObjectId
 }
-
 @ApiTags('Room')
 @UseGuards(jwtSocketIoMiddleware)
 @WebSocketGateway({cors : true, namespace: 'room'})
@@ -37,7 +36,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         private readonly userService: UsersService, 
     ) {}
 
-    private logger = new Logger('Gateway');
+    private logger = new Logger('Room');
 
     @WebSocketServer() nsp: Namespace;
     afterInit(server: any) {
