@@ -73,7 +73,7 @@ export class RoomService {
         await newInfoForRoom.save();
     }
 
-    async getRoomList(req) : Promise<Room[]> {
+    async getRoomList() : Promise<Room[]> {
         const rooms = await this.roomModel.find().exec();
         const result = await rooms.filter(room => room.ready === true);
         return result;
