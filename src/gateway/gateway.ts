@@ -224,5 +224,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     }
 
     
-  
+
+    @SubscribeMessage('start')
+    async handleStart(
+    @MessageBody('title') title : string,
+    @ConnectedSocket() socket: ExtendedSocket
+    ){
+        await this.nsp.to(title).emit('start');
+    }
 }
