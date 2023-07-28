@@ -101,7 +101,7 @@ export class UserInfoDto {
     level : number;
 
     @IsNotEmpty()
-    @ApiProperty()
+    @ApiProperty({description: "방장 표시" , type: Boolean})
     owner : boolean;
 
     @IsNotEmpty()

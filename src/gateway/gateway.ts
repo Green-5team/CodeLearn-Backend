@@ -197,7 +197,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     async handleReviewUser(
     @MessageBody('title') title : string,  @MessageBody('index') index : number,
     @ConnectedSocket() socket: ExtendedSocket
-    ): Promise<{success : boolean, payload : {roomInfo : RoomStatusChangeDto | boolean}} >{
+    ): Promise<{success : boolean, payload : {roomInfo : RoomStatusChangeDto | boolean, unlockedIndex?: number}} >{
 
         await this.roomService.getResult(socket.room_id, index);
 
@@ -207,6 +207,30 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
        return {success : true, payload: { roomInfo : roomAndUserInfo}}  
     }
 
+    @SubscribeMessage('lock/unlock')
+    async handlelock(
+        @MessageBody('title') title: string, @MessageBody('index') index: number,
+        @ConnectedSocket() socket : ExtendedSocket
+    ): Promise<{success : boolean, payload : {roomInfo : RoomStatusChangeDto | boolean}}> {
+        try {
+    
+    const room_id = await this.roomService.getRoomIdFromTitle(title); //title을 통해서 room_id를 가져오고
+    const roomAndUser = await this.roomService.unlockRoom(room_id, index); //room_id와 index를 통해서 unlock혹은 lock시킬 방의 index값과 title값을 반환함
+    
+    if (!roomAndUser) {
+        console.log('No roomAndUser returned');
+        return { success: false, payload: { roomInfo: false } };
+    }
+        
+    const roomAndUserInfo = await this.roomService.getRoomInfo(room_id); // room에 변경사항이 발생하였으므로 getRoomInfo를 통해서 정보를 전달해줌
+    
+    await this.nsp.to(title).emit('room-status-changed', roomAndUserInfo);
+    return {success : true, payload: { roomInfo : roomAndUserInfo}} 
+    } catch (error) {
+        return { success: false, payload: { roomInfo: false } };
+        }
+    }
+    
     @SubscribeMessage('start')
     async handleStart(
     @MessageBody('title') title : string,

@@ -263,5 +263,40 @@ export class RoomService {
             return false;
         }
         return true;
-    }   
-}
+    }
+    
+ 
+    
+    async unlockRoom(room_id: ObjectId, index: number): Promise<{roomAndUser: RoomAndUserDto, title: string} | null> {
+        
+        const roomAndUser = await this.roomAndUserModel.findOne({room_id: room_id}).exec();
+        
+        if (!roomAndUser || !roomAndUser.owner[0]) {
+            throw new BadRequestException('Unauthorized action or room not found');
+        }
+    
+        if(index < 0 || index >= roomAndUser.user_info.length){
+            console.log('Index out of bounds');
+            return null;
+        }
+    
+        if(roomAndUser.user_info[index] === EmptyOrLock.LOCK){
+            roomAndUser.user_info[index] = EmptyOrLock.EMPTY;
+        } else if (roomAndUser.user_info[index] === EmptyOrLock.EMPTY) {
+            roomAndUser.user_info[index] = EmptyOrLock.LOCK;
+        } else {
+            return null;
+        }
+    
+        await roomAndUser.save();
+    
+        const room = await this.roomModel.findOne({ _id: room_id }, 'title max_members').exec();
+        if (room) {
+            room.max_members++;
+            await room.save();
+        }
+        const roomTitle = room ? room.title : '';
+        
+        return { roomAndUser: roomAndUser, title: roomTitle };
+        }
+    }
