@@ -94,7 +94,7 @@ export class RoomService {
             const ownerId = ownerRoomAndUser.user_info[ownerIndex];
             // 오브젝트 아이디를 통해서 Authmodel에서 nickname을 찾습니다.
             const ownerAuth = await this.authModel.findById(ownerId);
-            // 새로운 오브젝트를 만들서 필요한 값을 추가하여 반환하도록 만들었습니다.
+            // 새로운 오브젝트를 만들서 필요한 값을 추가하여 반환
             let room: RoomWithOwnerNickname = {
                 _id: roomDoc._id,
                 title: roomDoc.title,

@@ -161,5 +161,5 @@ export class RoomWithOwnerNickname {
     level: number;
     mode: RoomMode;
     ready: boolean;
-    ownerNickname: string; // The new property
+    ownerNickname: string; // 추가된 새로운 요소
 }
