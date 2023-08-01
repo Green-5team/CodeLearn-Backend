@@ -1,13 +1,14 @@
 import { IsEmail } from 'class-validator';
 import { RoomAndUser } from './schemas/roomanduser.schema';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { RoomCreateDto, RoomAndUserDto, EmptyOrLock, UserInfoDto, RoomStatusChangeDto, Page } from './dto/room.dto';
+import { RoomCreateDto, RoomAndUserDto, EmptyOrLock, UserInfoDto, RoomStatusChangeDto, Page, RoomWithOwnerNickname } from './dto/room.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Room } from './schemas/room.schema'
 import mongoose, { Model,Mongoose,ObjectId,ObjectIdSchemaDefinition,Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from 'src/users/users.service';
 import { Auth } from 'src/auth/schemas/auth.schema';
+
 @Injectable()
 export class RoomService {
     constructor(
@@ -70,21 +71,51 @@ export class RoomService {
         await newInfoForRoom.save();
     }
 
-    async getRoomList(page: number): Promise<Page<Room[]>> {
+    
+    //pagenation을 위한 함수
+    async getRoomList(page: number): Promise<Page<RoomWithOwnerNickname[]>> {
         const pageSize = 8;
         const totalCount = await this.roomModel.countDocuments({ready: true});
         const totalPage = Math.ceil(totalCount / pageSize);
-        const rooms = await this.roomModel.find({ready: true})
+        const roomsDocuments = await this.roomModel.find({ready: true})
             .sort('-createdAt')
             .skip((page - 1) * pageSize)
             .limit(pageSize)
             .exec();
+    
+        let rooms: RoomWithOwnerNickname[] = [];  
+        
+        for (let i = 0; i < roomsDocuments.length; i++) {
+            const roomDoc = roomsDocuments[i];
+            const ownerRoomAndUser = await this.roomAndUserModel.findOne({ room_id: roomDoc._id, owner: true });
+            // 오너 인덱스를 찾아서 반환합니다.
+            const ownerIndex = ownerRoomAndUser.owner.findIndex(isOwner => isOwner);
+            // 오너 인덱스에 해당하는 user_info(objectId)
+            const ownerId = ownerRoomAndUser.user_info[ownerIndex];
+            // 오브젝트 아이디를 통해서 Authmodel에서 nickname을 찾습니다.
+            const ownerAuth = await this.authModel.findById(ownerId);
+            // 새로운 오브젝트를 만들서 필요한 값을 추가하여 반환하도록 만들었습니다.
+            let room: RoomWithOwnerNickname = {
+                _id: roomDoc._id,
+                title: roomDoc.title,
+                member_count: roomDoc.member_count,
+                max_members: roomDoc.max_members,
+                status: roomDoc.status,
+                password: roomDoc.password,
+                level: roomDoc.level,
+                mode: roomDoc.mode,
+                ready: roomDoc.ready,
+                ownerNickname: ownerAuth.nickname, // nickname값 추가
+            };
+            
+            rooms.push(room);
+        }
+    
         return {
             pageSize,
             totalCount,
             totalPage,
             rooms: rooms,
-            
         };
     }
     

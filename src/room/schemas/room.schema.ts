@@ -1,6 +1,6 @@
 import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose"
 import { ApiProperty } from "@nestjs/swagger";
-import { Document, SchemaOptions } from "mongoose";
+import { Document } from "mongoose";
 
 export enum RoomStatus {
     PUBLIC = 'PUBLIC',

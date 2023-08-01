@@ -149,3 +149,17 @@ export class Page<T> {
     rooms: T;
 }
 
+
+export class RoomWithOwnerNickname {
+    // ownerNickname을 포함 시키기위해 새로 만든 class
+    _id: ObjectId; 
+    title: string;
+    member_count: number;
+    max_members: number;
+    status: RoomStatus;
+    password: string;
+    level: number;
+    mode: RoomMode;
+    ready: boolean;
+    ownerNickname: string; // The new property
+}
