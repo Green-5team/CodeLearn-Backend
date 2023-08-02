@@ -237,7 +237,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         await this.nsp.to(title).emit('start', { "title" : title });
     }
 
-
+    
 
     @SubscribeMessage('quick-join')
         async handleQuickJoinRoom( 
@@ -301,6 +301,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         socket.emit('solved', { success: finish, payload: { result: result } });  
     }
 
+    @SubscribeMessage('time-out')
+    async handleTimeout(
+        @ConnectedSocket() socket: ExtendedSocket
+    ): Promise<{success: boolean, message: string}> {
+        return this.handleResetRoom(socket)
+    }
 
     @SubscribeMessage('reviewfinish')
         async handlealgorithmsolved(
@@ -351,5 +357,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         this.logger.error(`방 상태 초기화 실패: ${error.message}`);
         return {success: false, message: "방 상태 초기화 실패"};
     }
-}
+  }
+
+   
 }
