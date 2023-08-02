@@ -478,6 +478,5 @@ export class RoomService {
         // 예시: reviewFinishedCount 초기화
         this.reviewFinishedCount[roomId.toString()] = 0;
     }
-    // ...other code...
-
+    
 }
