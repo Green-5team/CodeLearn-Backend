@@ -97,7 +97,7 @@ export class RoomService {
             const roomDoc = roomsDocuments[i];
             const ownerRoomAndUser = await this.roomAndUserModel.findOne({ room_id: roomDoc._id, owner: true });
             // 오너 인덱스를 찾아서 반환합니다.
-            const ownerIndex = ownerRoomAndUser.owner.findIndex(isOwner => isOwner);
+            const ownerIndex = ownerRoomAndUser.owner.findIndex((isOwner, index) => isOwner && ownerRoomAndUser.user_info[index] !== 'EMPTY');
             // 오너 인덱스에 해당하는 user_info(objectId)
             const ownerId = ownerRoomAndUser.user_info[ownerIndex];
             // 오브젝트 아이디를 통해서 Authmodel에서 nickname을 찾습니다.
