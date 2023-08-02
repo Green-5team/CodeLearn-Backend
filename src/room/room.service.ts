@@ -96,10 +96,10 @@ export class RoomService {
 
         for (let i = 0; i < roomsDocuments.length; i++) {
             const roomDoc = roomsDocuments[i];
-            const roomInfo = await this.roomAndUserModel.findOne({ room_id: roomDoc._id})
-            const indexForowner = roomInfo.owner.indexOf(true);
-            const ownerID = roomInfo.user_info[indexForowner];
-            const ownerNickname = await this.authModel.findOne({ _id: ownerID }).exec();
+            const ownerRoomAndUser = await this.roomAndUserModel.findOne({ room_id: roomDoc._id, owner: true });
+            const ownerIndex = ownerRoomAndUser.owner.findIndex((isOwner, index) => isOwner && ownerRoomAndUser.user_info[index] !== 'EMPTY');
+            const ownerId = ownerRoomAndUser.user_info[ownerIndex];
+            const ownerAuth = await this.authModel.findById(ownerId);
 
             let room: RoomWithOwnerNickname = {
                 title: roomDoc.title,
@@ -110,7 +110,7 @@ export class RoomService {
                 level: roomDoc.level,
                 mode: roomDoc.mode,
                 ready: roomDoc.ready,
-                ownerNickname: ownerNickname.nickname, // nickname값 추가
+                ownerNickname: ownerAuth.nickname, // nickname값 추가
             };
             
             rooms.push(room);
