@@ -196,7 +196,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     @ConnectedSocket() socket: ExtendedSocket
     ): Promise<{success : boolean, payload : {roomInfo : RoomStatusChangeDto | boolean}} >{
 
-        
+        console.log(socket.room_id);
         await this.roomService.getResult(socket.room_id, socket.user_id);
 
         const roomAndUserInfo = await this.roomService.getRoomInfo(socket.room_id);
@@ -229,7 +229,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         }
     }
     
-
     @SubscribeMessage('start')
     async handleStart(
     @MessageBody('title') title : string,

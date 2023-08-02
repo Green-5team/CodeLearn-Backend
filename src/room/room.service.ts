@@ -11,7 +11,6 @@ import { Auth } from 'src/auth/schemas/auth.schema';
 @Injectable()
 export class RoomService {
     private reviewFinishedCount: {[roomId: string]: number} = {};
-    
     constructor(
         private readonly userService: UsersService,
         @InjectModel(Room.name) private readonly roomModel: Model<Room>,
@@ -310,8 +309,7 @@ export class RoomService {
     async getResult(room_id: ObjectId, user_id : ObjectId) {
         
         const roomInfo = await this.roomAndUserModel.findOne({ room_id: room_id }).exec();
-    
-        
+        console.log(roomInfo);
         let review_index = 0;
 
         await roomInfo.user_info.forEach(async (user, index) => {
@@ -398,7 +396,6 @@ export class RoomService {
     return false;
     
     }
-    
     async getRoomById(room_id: string): Promise<Room> {
         const room = await this.roomModel.findById(room_id).exec();
  
