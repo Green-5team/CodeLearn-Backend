@@ -326,7 +326,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
 
         if (allReviewsFinished) {
             this.nsp.to(result.roomTitle).emit('all-reviews-finished', "모든 리뷰가 끝났습니다.");
-            // 모든 리뷰가 완료되면 방의 상태를 리셋합니다.
+            // 모든 리뷰가 완료되면 방의 상태를 리셋
             await this.handleResetRoom(socket);
         }
         return { success: true, message: message, allReviewsFinished };
@@ -358,5 +358,5 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         this.logger.error(`방 상태 초기화 실패: ${error.message}`);
         return {success: false, message: "방 상태 초기화 실패"};
     }
-}
+ }
 }
