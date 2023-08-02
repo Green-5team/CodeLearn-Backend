@@ -18,13 +18,19 @@ export class RoomService {
         @InjectModel(RoomAndUser.name) private readonly roomAndUserModel: Model<RoomAndUser>,
         @InjectModel(Auth.name) private readonly authModel: Model<Auth>,
     ) {}
+    
+    async duplicationCheck(title: string) : Promise<Boolean>{
+        const check = await this.roomAndUserModel.findOne({ title: title }).exec();
+        if (check) {
+            return false;
+        }
+        return true;
+    }
+
     async createRoom(room :RoomCreateDto, email : string) : Promise<Room> {
         let newRoom;
         const found = await this.roomModel.findOne({ title: room.title });
         
-        if(found && found.ready === true){
-            throw new BadRequestException('Duplicate room title! please enter new title');
-        }
         if(room.status == "PRIVATE"){
             const hashedPassword = await bcrypt.hash(room.password, 10);
             newRoom = new this.roomModel({...room, password : hashedPassword});
@@ -398,6 +404,21 @@ export class RoomService {
  
         return room;
     }  
+        
+    async checkRoomPassword(title: string, password: string): Promise<boolean> {
+        const roomInfo = this.roomModel.findOne({ title: title }).exec();
+        if ((await roomInfo).status === "PUBLIC") {
+            return true;
+        }
+        if (password === undefined) {
+            return false;
+        }
+        const isPasswordMatched = await bcrypt.compare(password, (await roomInfo).password);
+        if (isPasswordMatched) {
+            return true;
+        }
+        return false;
+    }
     
     async setReviewFalse(room_id: ObjectId, user_id: ObjectId) {
         const roomInfo = await this.roomAndUserModel.findOne({ room_id: room_id }).exec();

@@ -1,8 +1,5 @@
-import { RoomAndUser } from './../room/schemas/roomanduser.schema';
-import { ObjectId } from 'mongoose';
 import { Logger, Req, UseGuards } from '@nestjs/common';
-import { verify } from 'jsonwebtoken';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import * as jwt from 'jsonwebtoken';
 import {
   ConnectedSocket,
@@ -14,30 +11,16 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Namespace, Socket } from 'socket.io';
-import { RoomAndUserDto, RoomCreateDto, RoomStatusChangeDto } from 'src/room/dto/room.dto';
+import { RoomCreateDto, RoomStatusChangeDto } from 'src/room/dto/room.dto';
 import { RoomService } from 'src/room/room.service';
 import { UsersService } from 'src/users/users.service';
 import { jwtSocketIoMiddleware } from './jwt-socket-io.middleware';
 import { CodingTestService } from 'src/codingtest/codingtest.service';
 import { CompileResultDto } from 'src/codingtest/dto/compileresult.dto';
-import { AuthGuard } from '@nestjs/passport';
+import { CodeSubmission, ExtendedSocket, JoinRoomPayload, ResponsePayload } from './interface'
 
 
 
-interface ExtendedSocket extends Socket {
-    decoded : {email :string},
-    user_id : ObjectId,
-    nickname : String,
-    room_id : ObjectId
-}
-
-interface CodeSubmission {
-    script: string;
-    language: string;
-    versionIndex: number;
-    problemNumber: number;
-    title: string;
-}
 @ApiTags('Room')
 @UseGuards(jwtSocketIoMiddleware)
 @WebSocketGateway({cors : true, namespace: 'room'})
@@ -93,12 +76,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     async handleCreateRoom(
       @MessageBody() roomCreateDto: RoomCreateDto,
       @ConnectedSocket() socket: ExtendedSocket
-    ) :Promise <{success : boolean, payload : {roomInfo : RoomStatusChangeDto | boolean}} > {
-        const room = await this.roomService.createRoom(roomCreateDto, socket.decoded.email);
-        if (!room) {
-            this.logger.log(`Room creation failed for email: ${socket.decoded.email}`);
-            return { success: false, payload: { roomInfo: false } };
+    ): Promise<ResponsePayload> {
+        const dup_check = await this.roomService.duplicationCheck(roomCreateDto.title);
+        if (!dup_check) {
+            return { success: false, payload: { message: "중복된 방제입니다." } };
         }
+        const room = await this.roomService.createRoom(roomCreateDto, socket.decoded.email);
+
+        if (!room) {
+            this.logger.log(`Room creation failed : ${socket.decoded.email}`);
+            return { success: false, payload: { message: "방을 생성 할 수 없습니다. 다시 시도해주세요." } };
+        }
+
         await room.save(); 
         const user_id = await this.userService.userInfoFromEmail(socket.decoded.email);
         socket.user_id = user_id;
@@ -106,26 +95,31 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         const room_id = await this.roomService.getRoomIdFromTitle(roomCreateDto.title);
         socket.room_id = room_id;
         const roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
-        this.nsp.emit('room-created', "room created!");
         return {success : true,  payload: { roomInfo : roomAndUserInfo}}
     }
 
+    
     @SubscribeMessage('join-room')
     async handleJoinRoom( 
-        @MessageBody('title') title: string,
+        @MessageBody() joinRoomPayload : JoinRoomPayload,
         @ConnectedSocket() socket: ExtendedSocket): 
-        Promise <{success : boolean, payload : {roomInfo : RoomStatusChangeDto | boolean}} > {
+        Promise <ResponsePayload > {
 
         this.logger.log(`${socket.id} : 방에 입장 준비 중입니다!`);
-        const condition = await this.roomService.checkRoomCondition(title);
+        const condition = await this.roomService.checkRoomCondition(joinRoomPayload.title);
+        const passwordcheck = await this.roomService.checkRoomPassword(joinRoomPayload.title, joinRoomPayload.password);
+
         let roomAndUserInfo: RoomStatusChangeDto | boolean;
-        if(!condition){
-            socket.emit("Can't join the room!");
+        
+        if (!condition) {
+            return { success : false, payload: { message : "방에 입장 할 수 없습니다."}}  
+        }
+        else if (!passwordcheck) {
+            return { success : false, payload: { message : "방 비밀번호가 일치하지 않습니다."}}  
         }
         else {
-            const room_id = await this.roomService.getRoomIdFromTitle(title);
-            socket.join(await title);
-            
+            const room_id = await this.roomService.getRoomIdFromTitle(joinRoomPayload.title);
+            socket.join(await joinRoomPayload.title);
             const user_id = await this.userService.userInfoFromEmail(socket.decoded.email);
             socket.user_id = user_id;
             socket.room_id = room_id;
@@ -133,10 +127,10 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
             await this.roomService.changeRoomStatusForJoin(room_id, user_id);
             
             roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
-            this.nsp.to(title).emit('room-status-changed', roomAndUserInfo);
+            this.nsp.to(joinRoomPayload.title).emit('room-status-changed', roomAndUserInfo);
         }
         this.logger.log(`${socket.id} : 방에 입장 완료하였습니다!`);
-        this.nsp.emit('enter-room', "enter-room!");
+
         return {success : true, payload: { roomInfo : roomAndUserInfo}}  
       }
 
