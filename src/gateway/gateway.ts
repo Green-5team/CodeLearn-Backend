@@ -202,7 +202,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     @ConnectedSocket() socket: ExtendedSocket
     ): Promise<{success : boolean, payload : {roomInfo : RoomStatusChangeDto | boolean}} >{
 
-        console.log(socket.room_id);
+        
         await this.roomService.getResult(socket.room_id, socket.user_id);
 
         const roomAndUserInfo = await this.roomService.getRoomInfo(socket.room_id);
@@ -235,6 +235,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         }
     }
     
+
     @SubscribeMessage('start')
     async handleStart(
     @MessageBody('title') title : string,
@@ -308,4 +309,54 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     }
 
 
+    @SubscribeMessage('reviewfinish')
+        async handlealgorithmsolved(
+    @ConnectedSocket() socket: ExtendedSocket
+    ): Promise<{success: boolean, message: string, allReviewsFinished: boolean}> {
+    let allReviewsFinished = false;
+    try {
+        // Review 상태를 false로 바꿉니다.
+        await this.roomService.setReviewFalse(socket.room_id, socket.user_id);
+        const result = await this.roomService.algorithmReviewFinish(socket.room_id.toString());
+        allReviewsFinished = result.allReviewsFinished;
+        let message = allReviewsFinished ? "모든 리뷰가 끝났습니다." : "리뷰가 아직 끝나지 않았습니다.";
+
+        const roomAndUserInfo = await this.roomService.getRoomInfo(socket.room_id);
+        this.nsp.to(result.roomTitle).emit('room-status-changed', roomAndUserInfo);
+
+        if (allReviewsFinished) {
+            this.nsp.to(result.roomTitle).emit('all-reviews-finished', "모든 리뷰가 끝났습니다.");
+            // 모든 리뷰가 완료되면 방의 상태를 리셋합니다.
+            await this.handleResetRoom(socket);
+        }
+        return { success: true, message: message, allReviewsFinished };
+            } catch (error) {
+        this.logger.error(error.message)
+        return { success: false, message: error.message, allReviewsFinished };
+        }
+    }
+
+    @SubscribeMessage('reset-room')
+        async handleResetRoom(
+    @ConnectedSocket() socket: ExtendedSocket
+    ): Promise<{success: boolean, message: string}> {
+
+    const room_id = socket.room_id;
+    
+    try {
+        await this.roomService.resetRoomStatus(room_id.toString());
+        const roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
+        if (typeof roomAndUserInfo === 'boolean') {
+            
+            throw new Error("방 정보를 가져오는데 실패하였습니다.");
+        }
+        const title = roomAndUserInfo.title;
+        this.nsp.to(title).emit('room-status-changed', roomAndUserInfo);
+        this.logger.log(`방 상태가 초기화되었습니다: ${socket.room_id}`);
+        return {success: true, message: "방 상태가 초기화되었습니다."};
+            } catch (error) {
+        this.logger.error(`방 상태 초기화 실패: ${error.message}`);
+        return {success: false, message: "방 상태 초기화 실패"};
+    }
+}
 }

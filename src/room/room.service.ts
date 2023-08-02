@@ -1,6 +1,6 @@
 import { IsEmail } from 'class-validator';
 import { RoomAndUser } from './schemas/roomanduser.schema';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { RoomCreateDto, RoomAndUserDto, EmptyOrLock, UserInfoDto, RoomStatusChangeDto, Page, RoomWithOwnerNickname } from './dto/room.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Room } from './schemas/room.schema'
@@ -10,13 +10,14 @@ import { UsersService } from 'src/users/users.service';
 import { Auth } from 'src/auth/schemas/auth.schema';
 @Injectable()
 export class RoomService {
+    private reviewFinishedCount: {[roomId: string]: number} = {};
+    
     constructor(
         private readonly userService: UsersService,
         @InjectModel(Room.name) private readonly roomModel: Model<Room>,
         @InjectModel(RoomAndUser.name) private readonly roomAndUserModel: Model<RoomAndUser>,
         @InjectModel(Auth.name) private readonly authModel: Model<Auth>,
     ) {}
-    
     async createRoom(room :RoomCreateDto, email : string) : Promise<Room> {
         let newRoom;
         const found = await this.roomModel.findOne({ title: room.title });
@@ -303,7 +304,8 @@ export class RoomService {
     async getResult(room_id: ObjectId, user_id : ObjectId) {
         
         const roomInfo = await this.roomAndUserModel.findOne({ room_id: room_id }).exec();
-        console.log(roomInfo);
+    
+        
         let review_index = 0;
 
         await roomInfo.user_info.forEach(async (user, index) => {
@@ -390,11 +392,72 @@ export class RoomService {
     return false;
     
     }
+    
     async getRoomById(room_id: string): Promise<Room> {
         const room = await this.roomModel.findById(room_id).exec();
  
         return room;
     }  
-        
-        
+    
+    async setReviewFalse(room_id: ObjectId, user_id: ObjectId) {
+        const roomInfo = await this.roomAndUserModel.findOne({ room_id: room_id }).exec();
+        let review_index = 0;
+    
+        await roomInfo.user_info.forEach(async (user, index) => {
+            if (user === user_id.toString()) {
+                review_index = index;
+            }
+        });
+    
+        roomInfo.review[review_index] = false;
+        try {
+            await roomInfo.save();
+        } catch {
+            return false;
+        }
+        return true;
+    }
+    
+
+
+    async algorithmReviewFinish(roomId: string): Promise<{allReviewsFinished: boolean, roomTitle: string}> {
+        // 'roomandusers' 모델에서 방 정보를 찾음
+        const roomAndUsers = await this.roomAndUserModel.findOne({ room_id: roomId });
+        if (!roomAndUsers) {
+            throw new NotFoundException('방을 찾을 수 없습니다.');
+        }
+        const room = await this.roomModel.findById(roomId)
+        const allReviewsFinished = roomAndUsers.review.every(review => review === false);
+        if (allReviewsFinished) {
+            // 모든 플레이어가 리뷰를 완료했다면, 상태를 초기화하고 이벤트를 트리거
+            await this.resetRoomStatus(roomId);
+            // 모든 사용자에게 알림
+            
+            return { allReviewsFinished: true, roomTitle: room.title };
+        } else {
+            return { allReviewsFinished: false, roomTitle: room.title };
+        }
+    }
+
+    async resetRoomStatus(roomId: string): Promise<void> {
+        const room = await this.roomAndUserModel.findOne({room_id: roomId});
+        if (!room) {
+            throw new NotFoundException('방을 찾을 수 없습니다.');
+        }
+
+        // 초기화하려는 상태에 따라 필요한 작업 수행
+        // 예시: 모든 사용자의 상태를 초기화
+        room.ready_status = room.ready_status.map(() => false);
+        room.solved = room.solved.map(() => false);
+        room.submit = room.submit.map(() => false);
+        room.review = room.review.map(() => false);
+
+        // 저장
+        await room.save();
+
+        // 필요에 따라 다른 초기화 작업 수행
+        // 예시: reviewFinishedCount 초기화
+        this.reviewFinishedCount[roomId.toString()] = 0;
+    }
+    // ...other code...
 }

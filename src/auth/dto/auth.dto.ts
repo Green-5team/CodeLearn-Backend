@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AuthDto {
@@ -37,3 +37,20 @@ export class SetNicknameDto {
   @ApiProperty({description: "nickname설정", required: true, type: String})
   nickname: string;
 }
+
+export class friendlistDto {
+
+  @IsString()
+  @ApiProperty({description: "nickname", required: true, type: String})
+  nickname: string;
+
+  @IsBoolean()
+  @ApiProperty({description: "온라인 상태인지 표지", required: true, type: Boolean})
+  online: boolean;
+
+  @IsNumber()
+  @ApiProperty({description: "친구 유저 레벨", type: Number})
+  level: number;
+
+}
+
