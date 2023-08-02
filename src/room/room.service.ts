@@ -74,9 +74,14 @@ export class RoomService {
     
     //pagenation을 위한 함수
     async getRoomList(page: number): Promise<Page<RoomWithOwnerNickname[]>> {
-        const pageSize = 8;
+        const pageSize = 6;
         const totalCount = await this.roomModel.countDocuments({ready: true});
-        const totalPage = Math.ceil(totalCount / pageSize);
+        let totalPage = Math.ceil(totalCount / pageSize);
+        totalPage = totalPage > 0 ? totalPage : 1;
+
+        if (page > totalPage) {
+            page = totalPage;
+        }
         const roomsDocuments = await this.roomModel.find({ready: true})
             .sort('-createdAt')
             .skip((page - 1) * pageSize)
