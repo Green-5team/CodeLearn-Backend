@@ -4,8 +4,9 @@ import { RoomModule } from 'src/room/room.module';
 import { UsersModule } from 'src/users/users.module';
 import { PassportModule } from '@nestjs/passport';
 import { CodingtestModule } from 'src/codingtest/codingtest.module';
+import { AuthModule } from 'src/auth/auth.module';
 @Module({
-    imports: [UsersModule, RoomModule, CodingtestModule],
+    imports: [AuthModule,UsersModule, RoomModule, CodingtestModule],
     providers : [AppGateway],
 })
 export class GatewayModule {}

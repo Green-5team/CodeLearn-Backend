@@ -18,6 +18,9 @@ import { jwtSocketIoMiddleware } from './jwt-socket-io.middleware';
 import { CodingTestService } from 'src/codingtest/codingtest.service';
 import { CompileResultDto } from 'src/codingtest/dto/compileresult.dto';
 import { CodeSubmission, ExtendedSocket, JoinRoomPayload, ResponsePayload } from './interface'
+import { AuthService } from 'src/auth/auth.service';
+
+
 
 
 
@@ -28,6 +31,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     constructor(private readonly roomService: RoomService,
         private readonly userService: UsersService, 
         private readonly codingService : CodingTestService,
+        private readonly authService: AuthService,
     ) {}
 
     private logger = new Logger('Room');
@@ -301,5 +305,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         socket.emit('solved', { success: finish, payload: { result: result } });  
     }
 
-
+    @SubscribeMessage('friendlist')
+    async handleFriendList(@ConnectedSocket() socket: ExtendedSocket) {
+    const friendList = await this.authService.getFriendList(socket.decoded.email);
+    socket.emit('friendlist',  { success: true, payload:  friendList  });
+    }
 }

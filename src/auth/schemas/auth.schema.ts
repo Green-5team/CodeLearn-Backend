@@ -1,6 +1,8 @@
 import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose"
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { Document, SchemaOptions } from "mongoose";
+import { FriendSummary, FriendSummarySchema, Friendship, FriendshipSchema } from "./auth.friend.schema"; 
+
 
 @Schema()
 export class Auth extends Document {
@@ -34,6 +36,13 @@ export class Auth extends Document {
 
     @Prop({default : null})
     nickname : string;
+
+    @Prop({ type: [FriendSummarySchema] })
+    friends: FriendSummary[];
+
+    @Prop({})
+    friendRequests: string[];
+   
 }
 
 export const AuthSchema  = SchemaFactory.createForClass(Auth);
