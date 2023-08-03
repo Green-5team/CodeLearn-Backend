@@ -3,10 +3,18 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { SocketIoAdapter } from './gateway/socket-io.adapter';
-
+import * as fs from 'fs';
+import * as https from 'https';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {cors : true});
+  const httpsOptions = {
+    key: fs.readFileSync('example.key'),
+    cert: fs.readFileSync('example.crt'),
+  };
+
+  const app = await NestFactory.create(AppModule, { cors: true, httpsOptions });
+
+
   app.useGlobalPipes(new ValidationPipe());
   app.useWebSocketAdapter(new SocketIoAdapter(app));
   const options = new DocumentBuilder()
