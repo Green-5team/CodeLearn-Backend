@@ -301,5 +301,15 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         socket.emit('solved', { success: finish, payload: { result: result } });  
     }
 
+    @SubscribeMessage('voice-join-room')
+    async handlevoiceJoinRoom(
+    @MessageBody() payload: { title: string, peerid: string },
+    @ConnectedSocket() socket: ExtendedSocket,
+    ): Promise<void> {
+        const { title, peerid } = payload;
+        socket.join(title);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await  this.nsp.to(title).emit('user-connected', peerid);
+    }
 
 }
