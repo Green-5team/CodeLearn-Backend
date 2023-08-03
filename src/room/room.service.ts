@@ -229,24 +229,25 @@ export class RoomService {
         return roomStatusChangeDto;
     }
 
-    async changeRoomStatusForLeave (room_id : ObjectId, user_id : ObjectId) : Promise<string> {
+    async changeRoomStatusForLeave (room_id : ObjectId, user_id : ObjectId) : Promise<Boolean | string> {
         // 디비에 해당 유저를 empty 로 바꾸고
         // 방 인원수도 바꿔줌.
-         // 해당 방에 대한 정보를 얻음
+        // 해당 방에 대한 정보를 얻음
+    
          const roomAndUserInfo = await this.roomAndUserModel.findOne({room_id : room_id}).exec();
 
          if (!roomAndUserInfo) {
              // Handle the case where roomanduser is undefined
              return `No RoomAndUser found for room id ${room_id}`;
          }
-         
          // 방 정보에서 첫번째로 empty인 부분을 찾음
          if (!user_id) {
             // Handle the case where user_id is undefined
             return 'user_id is undefined';
-        }
-
+         }
+        
         const user_index = await roomAndUserInfo.user_info.indexOf(user_id.toString());
+
         await this.roomAndUserModel.findOneAndUpdate(
              { room_id : room_id },
              { $set: { 
@@ -255,7 +256,7 @@ export class RoomService {
              }  },
          )
          await this.memberCountDown(room_id);
-         return 'Success';
+        return true;
     }
 
     async checkWrongDisconnection (email : string) : Promise<boolean> {
@@ -305,7 +306,6 @@ export class RoomService {
     async getResult(room_id: ObjectId, user_id : ObjectId) {
         
         const roomInfo = await this.roomAndUserModel.findOne({ room_id: room_id }).exec();
-        console.log(roomInfo);
         let review_index = 0;
 
         await roomInfo.user_info.forEach(async (user, index) => {
@@ -427,5 +427,10 @@ export class RoomService {
         }
     }
     return nickNameList;
-}
+    }
+
+    async getUserIdFromIndex(title: string, index: number) : Promise<any> {
+        const userInfo = await this.roomAndUserModel.findOne({ title: title }, 'user_info').exec();
+        return new Types.ObjectId(userInfo.user_info[index]);
+    }
 }

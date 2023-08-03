@@ -14,6 +14,7 @@ export class Auth extends Document {
         required: true,
         unique: true,
     })
+        
     @IsEmail()
     @IsNotEmpty()
     email: string;
@@ -35,7 +36,10 @@ export class Auth extends Document {
     level : number;
 
     @Prop({default : null})
-    nickname : string;
+    nickname: string;
+    
+    @Prop({default : null})
+    socketid : string;
 
     @Prop({ type: [FriendSummarySchema] })
     friends: FriendSummary[];

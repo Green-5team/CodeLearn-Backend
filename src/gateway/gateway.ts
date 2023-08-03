@@ -30,21 +30,21 @@ import { AuthService } from 'src/auth/auth.service';
 export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     constructor(private readonly roomService: RoomService,
         private readonly userService: UsersService, 
-        private readonly codingService : CodingTestService,
-        private readonly authService: AuthService,
+        private readonly codingService: CodingTestService,
+        private readonly authService: AuthService
     ) {}
 
     private logger = new Logger('Room');
 
     @WebSocketServer() nsp: Namespace;
     afterInit(server: any) {
-        this.nsp.adapter.on('create-room', (room) => {
-        this.logger.log(`"${room}" 이 생성되었습니다.`);
-        });
+        this.logger.log('Initialized!');
+    
     }
 
     async handleConnection(@ConnectedSocket()  socket: ExtendedSocket) {
         if (socket.handshake.headers && socket.handshake.headers.authorization) {
+
             const token = socket.handshake.headers.authorization.split(' ')[1]; 
         
             jwt.verify(token, process.env.JWT_SECRET, (err: any, decoded: any) => {
@@ -54,6 +54,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
             }
             socket.decoded = decoded;
             this.logger.log(`"token 인증 되어있습니다!`);
+            this.authService.saveSocketId(decoded.email, socket.id);
             });
           } else {
             socket.disconnect(); // 연결을 끊음
@@ -64,7 +65,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         const check = await this.roomService.checkWrongDisconnection(socket.decoded.email);
         if (!check) {
             const result = await this.roomService.changeRoomStatusForLeave(socket.room_id, socket.user_id);
-            if(result === "Success"){
+            if(result){
                 const title = await this.roomService.getTitleFromRoomId(socket.room_id);
                 socket.leave(await title);
                 const roomAndUserInfo = await this.roomService.getRoomInfo(socket.room_id);
@@ -99,6 +100,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         const room_id = await this.roomService.getRoomIdFromTitle(roomCreateDto.title);
         socket.room_id = room_id;
         const roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
+        if (roomAndUserInfo == null || false || undefined) {
+            return { success: false, payload: { message: "방을 생성 할 수 없습니다. 다시 시도해주세요." }};    
+        }
         return {success : true,  payload: { roomInfo : roomAndUserInfo}}
     }
 
@@ -148,8 +152,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
 
         socket.leave(await title);
   
-        const roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
-        if (roomAndUserInfo !== false) {
+        const roomAndUserInfo = await this.roomService.getRoomInfo(await room_id);
+        if (await roomAndUserInfo !== false) {
             await this.nsp.to(title).emit('room-status-changed', roomAndUserInfo);   
         }
         return {success : true}  
@@ -199,8 +203,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     @MessageBody('title') title : string,
     @ConnectedSocket() socket: ExtendedSocket
     ): Promise<{success : boolean, payload : {roomInfo : RoomStatusChangeDto | boolean}} >{
-
-        console.log(socket.room_id);
         await this.roomService.getResult(socket.room_id, socket.user_id);
 
         const roomAndUserInfo = await this.roomService.getRoomInfo(socket.room_id);
@@ -301,10 +303,20 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         }
         await this.codingService.saveSubmitInfo(socket.decoded.email, codeSubmission.title);
         const finish = await this.codingService.checkFinish(codeSubmission.title);
-        console.log(finish);
+
         socket.emit('solved', { success: finish, payload: { result: result } });  
     }
 
+    @SubscribeMessage('forceLeave')
+    async handleForceLeave(
+        @MessageBody('title') title: string, @MessageBody('index') index: number,
+        @ConnectedSocket() socket: ExtendedSocket) {
+        
+        const userId = this.roomService.getUserIdFromIndex(title, index);
+        const userSocketid = this.authService.getSocketIdByuserId(await userId);
+        this.nsp.to(await userSocketid).emit('kicked', title);
+     
+    }
     @SubscribeMessage('friendlist')
     async handleFriendList(@ConnectedSocket() socket: ExtendedSocket) {
     const friendList = await this.authService.getFriendList(socket.decoded.email);

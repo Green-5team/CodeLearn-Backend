@@ -9,40 +9,37 @@ export class Friendship extends Document {
   user: string; // Reference to the user's ObjectId
 
   @Prop({ ref: 'Auth', required: true })
-  friend: string; // Reference to the friend's ObjectId
+  friend: string;
 
   @Prop({ default: false })
-  isRequest: boolean; // true if the friendship is a request, false if it's a confirmed friendship
+  isRequest: boolean; // true 라면 친구 수락전, false 라면 친구 수락 이후 
 
   @Prop({ default: false })
-  isConfirmed: boolean; // true if the friendship is confirmed, false if it's still pending
-
-  @Prop({ default: false })
-  isBlocked: boolean; // true if the friendship is blocked, false if it's not blocked
+  isConfirmed: boolean; // true 라면 친구 수락 상태 , false 라면 아직 친구 수락 대기상태
 
   @Prop()
-  nickname: string; // Nickname of the friend
+  nickname: string; // 친구의 닉네임
 
   @Prop()
-  online: boolean; // Online status of the friend
+  online: boolean; // 친구의 온라인 상태
 
   @Prop()
-  level: number; // Level of the friend
+  level: number; // 친구의 레벨
 }
 
 @Schema()
 export class FriendSummary extends Document {
   @Prop({ ref: 'Auth', required: true })
-  user: string; // Reference to the user's ObjectId
+  user: string; // 유저 ObjectID
 
   @Prop()
-  nickname: string; // Nickname of the friend
+  nickname: string; // 친구의 닉네임
 
   @Prop()
-  online: boolean; // Online status of the friend
+  online: boolean; // 친구의 온라인 상태
 
   @Prop()
-  level: number; // Level of the friend
+  level: number; // 친구의 레벨
 }
 
 export const FriendshipSchema = SchemaFactory.createForClass(Friendship);

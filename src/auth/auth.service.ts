@@ -1,3 +1,4 @@
+import { ObjectId } from 'mongoose';
 import { FriendSummary, Friendship, FriendshipSchema } from './schemas/auth.friend.schema';
 import { AuthDto } from './dto/auth.dto';
 import { Injectable, UnauthorizedException, BadRequestException,ConflictException, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
@@ -127,6 +128,18 @@ export class AuthService {
       return { message: 'success'};
     }
   
+
+ 
+  async saveSocketId(email: string, socketid: string) {
+    const user = await this.authModel.findOne({ email: email });
+    user.socketid = socketid;
+    await user.save();
+    return { message: 'success'};
+  }
+  async getSocketIdByuserId(userid: ObjectId) {
+    const user = await this.authModel.findOne({ _id: userid });
+    return user.socketid;
+  }
     async getNicknameByEmail(email: string) {
       const user = await this.authModel.findOne({ email: email });
       if (!user) {
@@ -144,7 +157,6 @@ export class AuthService {
     }
 
     async sendFriendRequest(senderEmail: string, receiverNickname: string) {
-      // Find the sender and receiver in the database
       const sender = await this.authModel.findOne({ email: senderEmail });
       const receiver = await this.authModel.findOne({ nickname: receiverNickname });
     
@@ -158,16 +170,14 @@ export class AuthService {
         friend: receiver._id,
         isRequest: true,
         isConfirmed: false,
-        isBlocked: false,
         nickname: sender.nickname,
         level: sender.level,
         online: sender.online,
       });
     
-      // Save the friend request
+      
       const savedFriendRequest = await friendRequest.save();
     
-      // Add the sender's nickname to the receiver's friendRequests array and save it
       const friendRequestForReceiver = new this.friendshipModel({
         nickname: sender.nickname,
       });
@@ -179,14 +189,11 @@ export class AuthService {
     }
 
   async acceptFriendRequest(userEmail: string) {
-      // Find the user with the given email
       const user = await this.authModel.findOne({ email: userEmail });
     
       if (!user) {
         throw new NotFoundException('User not found.');
       }
-    
-      // The friend request must be from the friend to the user
       const friendFriendRequest = await this.friendshipModel.findOne({
         friend: user._id,
         isRequest: true,
@@ -201,7 +208,6 @@ export class AuthService {
       friendFriendRequest.isConfirmed = true;
       await friendFriendRequest.save();
     
-      // Create a new FriendSummary object and add it to the user's friends array
       const friend = new this.friendSummaryModel({
         user: friendFriendRequest.friend,
         nickname: friendFriendRequest.nickname,
@@ -211,10 +217,8 @@ export class AuthService {
       user.friends.push(friend);
       await user.save();
     
-      // Find the friend who sent the request
       const friendUser = await this.authModel.findOne({ _id: friendFriendRequest.user });
       
-      // Create a new FriendSummary object for the user who accepted the request
       const userSummary = new this.friendSummaryModel({
         user: user._id,
         nickname: user.nickname,
@@ -222,13 +226,11 @@ export class AuthService {
         level: user.level,
       });
     
-      // Add the user to the friend's friends array
       friendUser.friends.push(userSummary);
         await friendUser.save();
       user.friendRequests = user.friendRequests.filter(request => request !== friendFriendRequest.nickname);
         await user.save();
     
-      // Return the accepted friend request
       return {
         user: {
           nickname: user.nickname,
@@ -244,14 +246,12 @@ export class AuthService {
     }
 
   async rejectFriendRequest(userEmail: string) {
-      // Find the user with the given email
       const user = await this.authModel.findOne({ email: userEmail });
     
       if (!user) {
         throw new NotFoundException('User not found.');
       }
     
-      // The friend request must be from the friend to the user
       const friendFriendRequest = await this.friendshipModel.findOne({
         friend: user._id,
         isRequest: true,
@@ -261,12 +261,12 @@ export class AuthService {
         throw new BadRequestException('Friend request not found.');
       }
     
-      // Delete the friend request from the database
+      //데이터 베이스에서 친구를 찾아서 삭제
       await this.friendshipModel.deleteOne({ _id: friendFriendRequest._id });
         user.friendRequests = user.friendRequests.filter(request => request !== friendFriendRequest.nickname);
       await user.save();
     
-      // Return a message confirming the friend request was rejected
+      //친구수락 거절 메세지를 리턴
       return { message: 'Friend request rejected.' };
     }
 

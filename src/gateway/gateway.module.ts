@@ -6,7 +6,7 @@ import { PassportModule } from '@nestjs/passport';
 import { CodingtestModule } from 'src/codingtest/codingtest.module';
 import { AuthModule } from 'src/auth/auth.module';
 @Module({
-    imports: [AuthModule,UsersModule, RoomModule, CodingtestModule],
+    imports: [AuthModule,UsersModule, RoomModule, CodingtestModule, AuthModule],
     providers : [AppGateway],
 })
 export class GatewayModule {}
