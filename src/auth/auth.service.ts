@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongoose';
+import { FriendSummary, Friendship, FriendshipSchema } from './schemas/auth.friend.schema';
 import { AuthDto } from './dto/auth.dto';
-import { Injectable, UnauthorizedException, BadRequestException,ConflictException, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException,ConflictException, HttpException, HttpStatus,  NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Auth, AuthSchema} from './schemas/auth.schema';
@@ -11,7 +12,9 @@ import * as bcrypt from 'bcrypt';
 export class AuthService {
   usersService: any;
   constructor(
+    @InjectModel(Friendship.name) private friendshipModel: Model<Friendship>,
     @InjectModel(Auth.name) private readonly authModel: Model<Auth>,
+    @InjectModel(FriendSummary.name) private friendSummaryModel: Model<FriendSummary>,
     private jwtService: JwtService
   ) {}
 
@@ -139,4 +142,146 @@ export class AuthService {
     const user = await this.authModel.findOne({ _id: userid });
     return user.socketid;
   }
+
+  async getUserByNickname(nickname: string) {
+    const user = await this.authModel.findOne({ nickname: nickname });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  async sendFriendRequest(senderEmail: string, receiverNickname: string) {
+    const sender = await this.authModel.findOne({ email: senderEmail });
+    const receiver = await this.authModel.findOne({ nickname: receiverNickname });
+
+    if (!sender || !receiver) {
+      throw new Error('Sender or receiver not found.');
+    }
+
+    // Create a new friendship request and save it
+    const friendRequest = new this.friendshipModel({
+      user: sender._id,
+      friend: receiver._id,
+      isRequest: true,
+      isConfirmed: false,
+      nickname: sender.nickname,
+      level: sender.level,
+      online: sender.online,
+    });
+
+
+    const savedFriendRequest = await friendRequest.save();
+
+    const friendRequestForReceiver = new this.friendshipModel({
+      nickname: sender.nickname,
+    });
+
+    receiver.friendRequests.push(sender.nickname);
+    await receiver.save();
+
+    return {message: "친구 요청 성공!"};
+  }
+
+async acceptFriendRequest(userEmail: string) {
+    const user = await this.authModel.findOne({ email: userEmail });
+
+    if (!user) {
+      throw new NotFoundException('유저를 찾을 수 없습니다.');
+    }
+    const friendFriendRequest = await this.friendshipModel.findOne({
+      friend: user._id,
+      isRequest: true,
+    });
+
+    if (!friendFriendRequest) {
+      throw new BadRequestException('친구 요청을 찾을 수 없습니다.');
+    }
+
+    // Accept the friend request and update it in the database
+    friendFriendRequest.isRequest = false;
+    friendFriendRequest.isConfirmed = true;
+    await friendFriendRequest.save();
+
+    const friend = new this.friendSummaryModel({
+      user: friendFriendRequest.friend,
+      nickname: friendFriendRequest.nickname,
+      online: friendFriendRequest.online,
+      level: friendFriendRequest.level,
+    });
+    user.friends.push(friend);
+    await user.save();
+
+    const friendUser = await this.authModel.findOne({ _id: friendFriendRequest.user });
+
+    const userSummary = new this.friendSummaryModel({
+      user: user._id,
+      nickname: user.nickname,
+      online: user.online,
+      level: user.level,
+    });
+
+    friendUser.friends.push(userSummary);
+      await friendUser.save();
+    user.friendRequests = user.friendRequests.filter(request => request !== friendFriendRequest.nickname);
+      await user.save();
+
+      return {
+        message: `${user.nickname}님과 ${friendFriendRequest.nickname}님이 친구가 되었습니다.`
+      };
+  }
+
+
+  
+async rejectFriendRequest(userEmail: string) {
+    const user = await this.authModel.findOne({ email: userEmail });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const friendFriendRequest = await this.friendshipModel.findOne({
+      friend: user._id,
+      isRequest: true,
+    });
+
+    if (!friendFriendRequest) {
+      throw new BadRequestException('Friend request not found.');
+    }
+
+    //데이터 베이스에서 request를 찾아서 삭제
+    await this.friendshipModel.deleteOne({ _id: friendFriendRequest._id });
+      user.friendRequests = user.friendRequests.filter(request => request !== friendFriendRequest.nickname);
+    await user.save();
+
+    //친구수락 거절 메세지를 리턴
+    return { message: '친구 요청 거절' };
+  }
+
+  async getFriendList(userEmail: string) {
+    const user = await this.authModel.findOne({ email: userEmail });
+
+    if (!user) {
+        throw new Error('User not found.');
+    }
+
+    const friendList = user.friends.map(friend => {
+        return {
+            nickname: friend.nickname,
+            online: friend.online,
+            level: friend.level
+        };
+    });
+
+    const friendRequests = user.friendRequests.map(request => {
+        return {
+            nickname: request
+        };
+    });
+
+    return {
+        friendlist: friendList,
+        friendRequests: friendRequests
+    };
+}
 }

@@ -22,6 +22,7 @@ import { CodeSubmission, ExtendedSocket, JoinRoomPayload, ResponsePayload } from
 
 
 
+
 @ApiTags('Room')
 @UseGuards(jwtSocketIoMiddleware)
 @WebSocketGateway({cors : true, namespace: 'room'})
@@ -300,6 +301,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         const userSocketid = this.authService.getSocketIdByuserId(await userId);
         this.nsp.to(await userSocketid).emit('kicked', title);
      
+    }
+
+    @SubscribeMessage('friendlist')
+    async handleFriendList(@ConnectedSocket() socket: ExtendedSocket) {
+    const friendList = await this.authService.getFriendList(socket.decoded.email);
+    socket.emit('friendlist',  { success: true, payload:  friendList  });
     }
 
 }
