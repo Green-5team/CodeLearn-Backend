@@ -19,6 +19,7 @@ import { jwtSocketIoMiddleware } from './jwt-socket-io.middleware';
 import { CodingTestService } from 'src/codingtest/codingtest.service';
 import { CompileResultDto } from 'src/codingtest/dto/compileresult.dto';
 import { CodeSubmission, ExtendedSocket, JoinRoomPayload, ResponsePayload } from './interface'
+import { userInfo } from 'os';
 
 
 
@@ -129,11 +130,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         else {
             const room_id = await this.roomService.getRoomIdFromTitle(joinRoomPayload.title);
             socket.join(await joinRoomPayload.title);
-            const user_id = await this.userService.userInfoFromEmail(socket.decoded.email);
-            socket.user_id = user_id;
             socket.room_id = room_id;
 
-            await this.roomService.changeRoomStatusForJoin(room_id, user_id);
+            await this.roomService.changeRoomStatusForJoin(room_id, socket.user_id);
             
             roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
             this.nsp.to(joinRoomPayload.title).emit('room-status-changed', roomAndUserInfo);
@@ -264,22 +263,32 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     async handleSubmitCode(
         @MessageBody() codeSubmission: CodeSubmission,
         @ConnectedSocket() socket: ExtendedSocket) {
+        
         const userOutputResult = []; 
         const problem = await this.codingService.getProblemInput(codeSubmission.problemNumber);
         let result; 
-
-         for (const index of problem.input) {
-            result = await this.codingService.executeCode(codeSubmission.script, codeSubmission.language, codeSubmission.versionIndex, index);
-            if (!(result instanceof CompileResultDto)) {
-                return  { success: false, payload: { message: "제출을 실패했습니다. 다시 시도해주세요." }};
+        let quiz_result = false;
+        if (codeSubmission.script !== "") {
+            for (const index of problem.input) {
+                result = await this.codingService.executeCode(codeSubmission.script, codeSubmission.language, codeSubmission.versionIndex, index);
+                if (!(result instanceof CompileResultDto)) {
+                    return { success: false, payload: { message: "제출을 실패했습니다. 다시 시도해주세요." } };
+                }
+                const resultOutput = result.output.replace(/\n/g, '');
+                userOutputResult.push(resultOutput);
             }
-            const resultOutput = result.output.replace(/\n/g, '');
-            userOutputResult.push(resultOutput);
-        }
-        
-        if (userOutputResult.length == problem.output.length && 
-            userOutputResult.every((value, index) => value == problem.output[index])) {
-            await this.codingService.saveSolvedInfo(socket.decoded.email, codeSubmission.title);  
+            if (userOutputResult.length == problem.output.length &&
+                userOutputResult.every((value, index) => value == problem.output[index])) {
+                await this.codingService.saveSolvedInfo(socket.decoded.email, codeSubmission.title);
+                quiz_result = true;
+            }
+        } else {
+            const compileResult = new CompileResultDto;
+            compileResult.output = "0";
+            compileResult.memory = "0";
+            compileResult.statuscode = "0";
+            compileResult.cputime = "0";
+            result = compileResult;
         }
 
         await this.codingService.saveSubmitInfo(socket.decoded.email, codeSubmission.title);
@@ -289,7 +298,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
             await this.nsp.to(codeSubmission.title).emit('finishedGame', codeSubmission.title);
         }
 
-        return { success: true, payload: { result: result } };  
+        let roomStatusChangeDto = new RoomStatusChangeDto(); 
+        const roomAndUserInfo = await this.roomService.getRoomInfo(socket.room_id); 
+        if (typeof roomAndUserInfo !== 'boolean') {
+            roomStatusChangeDto = roomAndUserInfo;
+        }
+        return { success: true, payload: { quiz_result: quiz_result, result: result, user_info: roomStatusChangeDto.user_info }};  
     }
 
     @SubscribeMessage('forceLeave')
@@ -303,10 +317,38 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
      
     }
 
+
     @SubscribeMessage('friendlist')
     async handleFriendList(@ConnectedSocket() socket: ExtendedSocket) {
     const friendList = await this.authService.getFriendList(socket.decoded.email);
     socket.emit('friendlist',  { success: true, payload:  friendList  });
+    }
+
+
+
+    @SubscribeMessage('timer')
+    async handleTimer(
+    @MessageBody('title') title: string,
+    @ConnectedSocket() socket: ExtendedSocket) {    
+    
+        const socketId = await this.authService.getSocketIdByuserId(socket.user_id);
+
+        let timer = 15;
+        const interval = setInterval(async () => {
+        if (timer >= 0) {
+            this.nsp.to(socketId).emit('timer', timer);
+            timer--;
+        } else {
+            clearInterval(interval);
+            const reviewOrnot = await this.roomService.checkReviewOrNot(title);
+            if (reviewOrnot === true) {
+                this.nsp.to(socketId).emit('timeout', { success: true , review : true});
+            } else {
+                this.nsp.to(socketId).emit('timeout', { success: true , review : false});
+            }
+        }
+        }, 1000);
+        
     }
 
 }

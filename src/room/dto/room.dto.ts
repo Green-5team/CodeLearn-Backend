@@ -129,7 +129,11 @@ export class RoomStatusChangeDto {
 
     @IsNotEmpty()
     @ApiProperty({description: "방 제목", required: true, type: String})
-    title : string ;
+    title: string;
+
+    @IsNotEmpty()
+    @ApiProperty({description: "방 모드", required: true, type: String})
+    mode: RoomMode;
 
     @IsNotEmpty()
     @ApiProperty({description: "방에 참여한 유저 수", required: true, type: Number})

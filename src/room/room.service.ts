@@ -77,7 +77,7 @@ export class RoomService {
         await newInfoForRoom.save();
     }
 
-    async getRoomList(page: number): Promise<any> {
+    async getRoomList(page: number, level? : number): Promise<any> {
         const pageSize = 6;
         const totalCount = await this.roomModel.countDocuments({ready: true});
         let totalPage = Math.ceil(totalCount / pageSize);
@@ -87,11 +87,21 @@ export class RoomService {
             page = totalPage;
         }
 
-        const roomsDocuments = await this.roomModel.find({ready: true})
-            .sort('-createdAt')
-            .skip((page - 1) * pageSize)
-            .limit(pageSize)
-            .exec();
+        let roomsDocuments;
+        if (level !== undefined) {
+            roomsDocuments = await this.roomModel.find({ ready: true, level: level })
+                .sort('-createdAt')
+                .skip((page - 1) * pageSize)
+                .limit(pageSize)
+                .exec();
+        } else {
+            console.log("level is undefined");
+            roomsDocuments = await this.roomModel.find({ ready: true })
+                .sort('-createdAt')
+                .skip((page - 1) * pageSize)
+                .limit(pageSize)
+                .exec();
+        }
         
        const roomListDto = roomsDocuments.map((room) => {
             return {
@@ -217,6 +227,7 @@ export class RoomService {
         roomStatusChangeDto.member_count = room.member_count;
         roomStatusChangeDto.max_members = room.max_members;
         roomStatusChangeDto.user_info = userInfo;
+        roomStatusChangeDto.mode = room.mode;
 
         return roomStatusChangeDto;
     }
@@ -261,10 +272,10 @@ export class RoomService {
         }
     }
 
-    async changeOwner(room_id : ObjectId,user_id : ObjectId, index : number) : Promise<boolean> {
+    async changeOwner(room_id : ObjectId, user_id : ObjectId, index : number) : Promise<boolean> {
         const roomAndUserInfo = await this.roomAndUserModel.findOne({room_id : room_id}).exec();
         const current_index = await roomAndUserInfo.user_info.indexOf(user_id.toString());
-
+    
         if (current_index === -1) {
             throw new Error(`User with id ${user_id} not found in room ${room_id}`);
         }
@@ -278,7 +289,8 @@ export class RoomService {
         const result = await this.roomAndUserModel.findOneAndUpdate(
             { room_id : room_id }, 
             { $set : {
-                [`owner.${index}`] : true }
+                [`owner.${index}`] : true,
+                [`ready_status.${index}`] : false } // set the ready status of the new owner to false
             }
         )
         return true;
@@ -421,5 +433,10 @@ export class RoomService {
     async getUserIdFromIndex(title: string, index: number) : Promise<any> {
         const userInfo = await this.roomAndUserModel.findOne({ title: title }, 'user_info').exec();
         return new Types.ObjectId(userInfo.user_info[index]);
+    }
+    async checkReviewOrNot(title: string) {
+        const roomInfo = await this.roomAndUserModel.findOne({ title: title }).exec();
+        const reviews = (await roomInfo).review;
+        return reviews.some((review) => review === true);
     }
 }
