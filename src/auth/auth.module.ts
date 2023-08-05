@@ -11,7 +11,7 @@ import { APP_GUARD, NestFactory } from '@nestjs/core';
 import { AuthGuard } from './auth.guard';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from 'src/jwt.strategy';
-
+import { FriendshipSchema, FriendSummarySchema } from './schemas/auth.friend.schema';
 
 
 @Module({
@@ -23,7 +23,11 @@ import { JwtStrategy } from 'src/jwt.strategy';
         signOptions: { expiresIn: process.env.JWT_EXPIRES },
       }),
     }),
-    MongooseModule.forFeature([{ name: 'Auth', schema: AuthSchema }]),
+    MongooseModule.forFeature([
+      { name: 'Auth', schema: AuthSchema },
+      { name: 'Friendship', schema: FriendshipSchema },
+      { name: 'FriendSummary', schema: FriendSummarySchema },
+    ]), 
   ],
   providers: [AuthService, {
     provide: APP_GUARD,

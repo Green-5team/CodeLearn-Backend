@@ -23,6 +23,7 @@ import { userInfo } from 'os';
 
 
 
+
 @ApiTags('Room')
 @UseGuards(jwtSocketIoMiddleware)
 @WebSocketGateway({cors : true, namespace: 'room'})
@@ -332,6 +333,14 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
     }
 
 
+    @SubscribeMessage('friendlist')
+    async handleFriendList(@ConnectedSocket() socket: ExtendedSocket) {
+    const friendList = await this.authService.getFriendList(socket.decoded.email);
+    socket.emit('friendlist',  { success: true, payload:  friendList  });
+    }
+
+
+
     @SubscribeMessage('timer')
     async handleTimer(
     @MessageBody('title') title: string,
@@ -357,4 +366,5 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect{
         }, 1000);
         
     }
+
 }
