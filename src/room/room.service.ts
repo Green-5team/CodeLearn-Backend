@@ -285,32 +285,59 @@ export class RoomService {
         // 방 인원수도 바꿔줌.
         // 해당 방에 대한 정보를 얻음
     
-        const roomAndUserInfo = await this.roomAndUserModel.findOne({ room_id: room_id }).exec();
+        const roomAndUserInfo = await this.roomAndUserModel.findOne({room_id : room_id}).exec();
 
-        if (!roomAndUserInfo) {
-            // Handle the case where roomanduser is undefined
-            return `No RoomAndUser found for room id ${room_id}`;
-        }
-        // 방 정보에서 첫번째로 empty인 부분을 찾음
-        if (!user_id) {
-            // Handle the case where user_id is undefined
-            return 'user_id is undefined';
-        }
-        
-        const user_index = await roomAndUserInfo.user_info.indexOf(user_id.toString());
-
-        await this.roomAndUserModel.findOneAndUpdate(
-            { room_id: room_id },
-            {
-                $set: {
-                    [`user_info.${user_index}`]: "EMPTY",
-                    [`ready_status.${user_index}`]: false
-                }
-            },
-        )
-        await this.memberCountDown(room_id);
-        return true;
+    if (!roomAndUserInfo) {
+        // Handle the case where roomanduser is undefined
+        return `No RoomAndUser found for room id ${room_id}`;
     }
+
+    // 방 정보에서 첫번째로 empty인 부분을 찾음
+    if (!user_id) {
+       // Handle the case where user_id is undefined
+       return 'user_id is undefined';
+    }
+
+    const user_index = await roomAndUserInfo.user_info.indexOf(user_id.toString());
+
+    let updateData = {
+        $set: { 
+            [`user_info.${user_index}`]:  "EMPTY",
+            [`ready_status.${user_index}`]:  false
+        }
+    };
+
+    // Check if the user who left is the owner
+    if (roomAndUserInfo.owner[user_index]) {
+        // Find the index of the next owner
+        let nextOwnerIndex = roomAndUserInfo.user_info.findIndex((value, index) => value !== "EMPTY" && value !== "LOCK" && index !== user_index);
+
+        // If a user was found who can become the new owner
+        if (nextOwnerIndex !== -1) {
+            updateData.$set[`owner.${user_index}`] = false;
+            updateData.$set[`owner.${nextOwnerIndex}`] = true;
+            // If the new owner's ready_status is true, set it to false
+            if (roomAndUserInfo.ready_status[nextOwnerIndex]) {
+                updateData.$set[`ready_status.${nextOwnerIndex}`] = false;
+            }
+        }
+    }
+
+    await this.roomAndUserModel.findOneAndUpdate(
+         { room_id : room_id },
+         updateData
+    );
+
+    await this.memberCountDown(room_id);
+    return true;
+}
+
+
+
+
+
+
+
     
     
     
