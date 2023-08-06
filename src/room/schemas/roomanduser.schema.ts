@@ -35,6 +35,8 @@ export class RoomAndUser extends Document {
   @Prop({ type: [String], default : null})
   team: string[];
   
+  @Prop({ type: [Number]})
+  problem_number: Number[];
 }
 
 export const RoomAndUserSchema = SchemaFactory.createForClass(RoomAndUser);

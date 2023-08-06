@@ -10,6 +10,7 @@ import { Room } from 'src/room/schemas/room.schema';
 import { CompileResultDto } from './dto/compileresult.dto';
 import { RoomAndUser } from 'src/room/schemas/roomanduser.schema';
 import { Auth } from 'src/auth/schemas/auth.schema';
+import { domainToUnicode } from 'url';
 
 @Injectable()
 export class CodingTestService {
@@ -54,9 +55,13 @@ export class CodingTestService {
 
   async getProblem(title : string) {
     const found = await this.roomModel.findOne({ title: title });
+    const roomAnduser = await this.roomAndUserModel.findOne({title: title});
     const count = await this.problemModel.countDocuments({ level : found.level }); 
     const random = Math.floor(Math.random() * count);  
-    const document = await this.problemModel.findOne({ level: found.level }).skip(random).exec(); 
+    const document = await this.problemModel.findOne({ level: found.level }).skip(random).exec();
+
+    roomAnduser.problem_number.push(document.number)
+    await roomAnduser.save()
     return document;
   }
 
