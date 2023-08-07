@@ -199,5 +199,15 @@ export class CodingTestService {
       console.error('An error occurred while saving the problem:', error);
     }
   }
+  
+//   async updateProblemLimitTime(problemNumber: number, limitTime: number) {
+//     try {
+//         await this.problemModel.updateOne({ number: problemNumber }, { $set: { limit_time: limitTime } }).exec();
+//         console.log('Attempted to update problem.');
+//     } catch (error) {
+//         console.error('An error occurred while updating the problem:', error);
+//     }
+// }
+
 
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards, Patch, HttpException, HttpStatus } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CodingTestService } from './codingtest.service';
 import { CompileResultDto } from './dto/compileresult.dto';
@@ -32,28 +32,38 @@ export class CodingtestController {
         }   
     }
 
-   @Post('/')
-   async getProblem(@Body('title') title: string) {
-        const problem = await this.codingTestService.getProblem(title);
-        return problem;
+    @Post('/')
+    async getProblem(@Body('title') title: string) {
+         const problem = await this.codingTestService.getProblem(title);
+         return problem;
+     }
+ 
+     // @Post('/getProblem')
+     // async getProblem(@Body('problem_number') problem: number[]) {
+     //     const problemInfo = await this.codingTestService.getProblem(problem);
+     //     return problemInfo;
+     // }
+ 
+     // async 
+ 
+     // //FOR TESTING
+     @Get('testing')
+     async insertProblemToDB() {
+         await this.codingTestService.insertProblemToDB();
+     }
+
+    //  @Patch('update-limit-time')
+    //  async updateProblemLimitTime(@Body() updateData: { number: number, limitTime: number }) {
+    //      try {
+    //          await this.codingTestService.updateProblemLimitTime(updateData.number, updateData.limitTime);
+    //          return { status: 'Attempted to update problem.' };
+    //      } catch (error) {
+    //          console.error('An error occurred while updating the problem:', error);
+    //          throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+    //      }
+    //  }
+     
     }
-
-    // @Post('/getProblem')
-    // async getProblem(@Body('problem_number') problem: number[]) {
-    //     const problemInfo = await this.codingTestService.getProblem(problem);
-    //     return problemInfo;
-    // }
-
-    // async 
-
-    // //FOR TESTING
-    // @Get('testing')
-    // async insertProblemToDB() {
-    //     await this.codingTestService.insertProblemToDB();
-    // }
-
-}
-
 /*python 
 
 input = sys.readline
