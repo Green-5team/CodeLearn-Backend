@@ -1,0 +1,16 @@
+{
+  "name": "openvidu-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./openvidu-server.js",
+  "scripts": {
+    "start": "node ./openvidu-server.js"
+  },
+  "author": "Minji Lee",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "y-websocket": "^1.4.5"
+  }
+}
