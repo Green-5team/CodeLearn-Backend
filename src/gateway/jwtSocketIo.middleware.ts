@@ -1,5 +1,5 @@
-import { INestApplicationContext } from '@nestjs/common';
-import { Socket } from 'socket.io';
+import { INestApplicationContext } from "@nestjs/common";
+import { Socket } from "socket.io";
 
 export function jwtSocketIoMiddleware(app: INestApplicationContext) {
   return (socket: Socket, next: () => void) => {

@@ -2,7 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { ValidationPipe } from "@nestjs/common";
-import { SocketIoAdapter } from "./gateway/socket-io.adapter";
+import { SocketIoAdapter } from "./gateway/socketIo.adapter";
 import { SocketProvider } from "./socket.provider";
 import * as http from "http";
 

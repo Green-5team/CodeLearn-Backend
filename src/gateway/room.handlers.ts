@@ -114,4 +114,19 @@ export class RoomHandlers {
     }
     return { success: true };
   }
+
+  async handleQuickJoinRoom(
+    socket: ExtendedSocket
+  ): Promise<{ success: boolean; payload: { roomInfo: string } }> {
+    const email = socket.decoded.email;
+    const roomInfo = await this.roomService.findRoomForQuickJoin();
+
+    if (!roomInfo) {
+      return {
+        success: false,
+        payload: { roomInfo: "입장할 수 있는 방이 없습니다." },
+      };
+    }
+    return { success: true, payload: { roomInfo: roomInfo.title } };
+  }
 }

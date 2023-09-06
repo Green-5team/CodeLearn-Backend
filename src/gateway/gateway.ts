@@ -1,6 +1,5 @@
-import { TeamDto } from "./../room/dto/room.dto";
 import { AuthService } from "./../auth/auth.service";
-import { Logger, Req, UseGuards } from "@nestjs/common";
+import { Logger, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import * as jwt from "jsonwebtoken";
 import {
@@ -12,7 +11,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from "@nestjs/websockets";
-import { Namespace, Socket } from "socket.io";
+import { Namespace } from "socket.io";
 import {
   RoomCreateDto,
   RoomStatusChangeDto,
@@ -20,23 +19,25 @@ import {
 } from "src/room/dto/room.dto";
 import { RoomService } from "src/room/room.service";
 import { UsersService } from "src/users/users.service";
-import { jwtSocketIoMiddleware } from "./jwt-socket-io.middleware";
+import { jwtSocketIoMiddleware } from "./jwtSocketIo.middleware";
 import { CodingTestService } from "src/codingtest/codingtest.service";
-import { CompileResultDto } from "src/codingtest/dto/compileresult.dto";
 import {
   CodeSubmission,
   ExtendedSocket,
   JoinRoomPayload,
   ResponsePayload,
 } from "./interface";
-import { userInfo } from "os";
 import { RoomHandlers } from "./room.handlers";
+import { RoomStatusHandlers } from "./roomStatus.handlers";
+import { ReviewHandlers } from "./review.handlers";
 
 @ApiTags("Room")
 @UseGuards(jwtSocketIoMiddleware)
 @WebSocketGateway({ cors: true, namespace: "room" })
 export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private roomHandlers: RoomHandlers;
+  private roomStatusHandlers: RoomStatusHandlers;
+  private reviewHandlers: ReviewHandlers;
   constructor(
     private readonly roomService: RoomService,
     private readonly userService: UsersService,
@@ -50,6 +51,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   afterInit(server: any) {
     this.logger.log("Initialized!");
     this.roomHandlers = new RoomHandlers(this.roomService, this.nsp);
+    this.roomStatusHandlers = new RoomStatusHandlers(
+      this.roomService,
+      this.userService,
+      this.codingService,
+      this.authService,
+      this.nsp
+    );
+    this.reviewHandlers = new ReviewHandlers(
+      this.roomService,
+      this.codingService,
+      this.nsp
+    );
   }
 
   async handleConnection(@ConnectedSocket() socket: ExtendedSocket) {
@@ -75,7 +88,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
       );
     } else {
-      socket.disconnect(); // 연결을 끊음
+      socket.disconnect();
     }
   }
 
@@ -128,24 +141,20 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return this.roomHandlers.handleLeaveRoom(title, socket);
   }
 
+  @SubscribeMessage("quick-join")
+  async handleQuickJoinRoom(
+    @ConnectedSocket() socket: ExtendedSocket
+  ): Promise<{ success: boolean; payload: { roomInfo: string } }> {
+    return this.roomHandlers.handleQuickJoinRoom(socket);
+  }
+
   @SubscribeMessage("change-owner")
   async handleChangeOwner(
     @MessageBody("title") title: string,
     @MessageBody("index") userIndex: number,
     @ConnectedSocket() socket: ExtendedSocket
   ): Promise<{ success: boolean; payload: { owner: number } }> {
-    await this.roomService.changeOwner(
-      socket.room_id,
-      socket.user_id,
-      userIndex
-    );
-    const roomAndUserInfo = await this.roomService.getRoomInfo(socket.room_id);
-    if (roomAndUserInfo !== false) {
-      await this.nsp
-        .to(await title)
-        .emit("room-status-changed", roomAndUserInfo);
-    }
-    return { success: true, payload: { owner: userIndex } };
+    return this.roomStatusHandlers.handleChangeOwner(title, userIndex, socket);
   }
 
   @SubscribeMessage("ready")
@@ -156,41 +165,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     success: boolean;
     payload: { nickname?: string; status?: boolean };
   }> {
-    try {
-      const room_id = await this.roomService.getRoomIdFromTitle(title);
-      const user_id = await this.userService.userInfoFromEmail(
-        socket.decoded.email
-      );
-      const userStatus = await this.roomService.setUserStatusToReady(
-        room_id,
-        user_id
-      );
-      const roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
-
-      if (
-        roomAndUserInfo instanceof RoomStatusChangeDto ||
-        roomAndUserInfo instanceof TeamDto
-      ) {
-        roomAndUserInfo.user_info;
-        userStatus.status;
-        await this.nsp.to(title).emit("room-status-changed", roomAndUserInfo);
-        return {
-          success: true,
-          payload: { nickname: userStatus.nickname, status: userStatus.status },
-        };
-      } else {
-        return {
-          success: false,
-          payload: { nickname: userStatus.nickname, status: userStatus.status },
-        };
-      }
-    } catch (error) {
-      console.error("Error handling ready user", error);
-      return {
-        success: false,
-        payload: { nickname: undefined, status: undefined },
-      };
-    }
+    return this.roomStatusHandlers.handleReadyUser(title, socket);
   }
 
   @SubscribeMessage("reviewUser")
@@ -199,27 +174,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody("review") review: boolean,
     @ConnectedSocket() socket: ExtendedSocket
   ): Promise<{ success: boolean; payload: any }> {
-    const checkReuslt = await this.roomService.getResult(
-      socket.room_id,
-      socket.user_id,
-      review
-    );
-
-    if (checkReuslt === false) {
-      return {
-        success: false,
-        payload: { message: "버튼을 클릭할 수 없습니다." },
-      };
-    }
-
-    const roomAndUserInfo = await this.roomService.getRoomInfo(socket.room_id);
-    await this.nsp.to(title).emit("room-status-changed", roomAndUserInfo);
-
-    return { success: true, payload: { roomInfo: roomAndUserInfo } };
+    return this.reviewHandlers.handleReviewUser(title, review, socket);
   }
 
   @SubscribeMessage("lockunlock")
-  async handlelock(
+  async handlelockAndUnlock(
     @MessageBody("title") title: string,
     @MessageBody("index") index: number,
     @ConnectedSocket() socket: ExtendedSocket
@@ -227,21 +186,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     success: boolean;
     payload: { roomInfo: RoomStatusChangeDto | boolean };
   }> {
-    try {
-      const room_id = await this.roomService.getRoomIdFromTitle(title);
-      const roomAndUser = await this.roomService.unlockRoom(room_id, index);
-
-      if (!roomAndUser) {
-        console.log("No roomAndUser returned");
-        return { success: false, payload: { roomInfo: false } };
-      }
-
-      const roomAndUserInfo = await this.roomService.getRoomInfo(room_id);
-      await this.nsp.to(title).emit("room-status-changed", roomAndUserInfo);
-      return { success: true, payload: { roomInfo: roomAndUserInfo } };
-    } catch (error) {
-      return { success: false, payload: { roomInfo: false } };
-    }
+    return this.roomStatusHandlers.handlelockAndUnlock(title, index, socket);
   }
 
   @SubscribeMessage("start")
@@ -249,49 +194,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody("title") title: string,
     @ConnectedSocket() socket: ExtendedSocket
   ) {
-    const roomInfo = this.roomService.getRoomById(socket.room_id);
-    const roomAndUserInfo = await this.roomService.getRoomInfo(socket.room_id);
-    let userInfo;
-    if (roomAndUserInfo instanceof TeamDto) {
-      userInfo = roomAndUserInfo.user_info;
-    }
-    await this.codingService.getRandomProblem(title);
-    if ((await roomInfo).mode === "COOPERATIVE") {
-      const balance = await this.roomService.checkBalanceTeam(socket.room_id);
-      if (balance === false) {
-        console.log("각 팀의 인원수가 일치하지 않습니다.");
-        return {
-          success: false,
-          payload: { message: "각 팀의 인원수가 일치해야합니다." },
-        };
-      }
-    }
-    await this.nsp.to(title).emit("start", { title: title });
-    if (roomAndUserInfo instanceof TeamDto) {
-      console.log(userInfo);
-      return {
-        success: true,
-        payload: { userInfo: userInfo, message: "게임이 시작되었습니다." },
-      };
-    } else {
-      return { success: true, payload: { message: "게임이 시작되었습니다." } };
-    }
-  }
-
-  @SubscribeMessage("quick-join")
-  async handleQuickJoinRoom(
-    @ConnectedSocket() socket: ExtendedSocket
-  ): Promise<{ success: boolean; payload: { roomInfo: string } }> {
-    const email = socket.decoded.email;
-    const roomInfo = await this.roomService.findRoomForQuickJoin();
-
-    if (!roomInfo) {
-      return {
-        success: false,
-        payload: { roomInfo: "입장할 수 있는 방이 없습니다." },
-      };
-    }
-    return { success: true, payload: { roomInfo: roomInfo.title } };
+    return this.roomStatusHandlers.handleStart(title, socket);
   }
 
   @SubscribeMessage("submitCode")
@@ -299,93 +202,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() codeSubmission: CodeSubmission,
     @ConnectedSocket() socket: ExtendedSocket
   ) {
-    const userOutputResult = [];
-    const problem = await this.codingService.getProblemInput(
-      codeSubmission.problemNumber
-    );
-    let result;
-    let quiz_result = false;
-    if (codeSubmission.script !== "") {
-      for (const index of problem.input) {
-        result = await this.codingService.executeCode(
-          codeSubmission.script,
-          codeSubmission.language,
-          codeSubmission.versionIndex,
-          index
-        );
-        if (!(result instanceof CompileResultDto)) {
-          return {
-            success: false,
-            payload: { message: "제출을 실패했습니다. 다시 시도해주세요." },
-          };
-        }
-        const resultOutput = result.output.replace(/\n/g, "");
-        userOutputResult.push(resultOutput);
-      }
-
-      if (
-        userOutputResult.length == problem.output.length &&
-        userOutputResult.every(
-          (value, index) => value === problem.output[index]
-        )
-      ) {
-        await this.codingService.saveSolvedInfo(
-          socket.decoded.email,
-          codeSubmission.title
-        );
-        quiz_result = true;
-      } else {
-        const checkMode = await this.roomService.checkModeForCoop(
-          codeSubmission.title
-        );
-        if (checkMode) {
-          return {
-            success: false,
-            payload: { message: "틀렸습니다! 다시 시도해주세요." },
-          };
-        }
-      }
-    } else {
-      const compileResult = new CompileResultDto();
-      compileResult.output = "0";
-      compileResult.memory = "0";
-      compileResult.statuscode = "0";
-      compileResult.cputime = "0";
-      result = compileResult;
-    }
-
-    await this.codingService.saveSubmitInfo(
-      socket.decoded.email,
-      codeSubmission.title
-    );
-    const finish = await this.codingService.checkFinish(codeSubmission.title);
-
-    if (finish.success == true) {
-      if (finish.mode !== "STUDY") {
-        await this.nsp.to(codeSubmission.title).emit("finishedGame", {
-          title: codeSubmission.title,
-          winner: finish.mode,
-        });
-      } else {
-        await this.nsp
-          .to(codeSubmission.title)
-          .emit("finishedGame", { title: codeSubmission.title });
-      }
-    }
-
-    let roomStatusChangeDto = new RoomStatusChangeDto();
-    const roomAndUserInfo = await this.roomService.getRoomInfo(socket.room_id);
-    if (typeof roomAndUserInfo !== "boolean") {
-      roomStatusChangeDto = roomAndUserInfo;
-    }
-    return {
-      success: true,
-      payload: {
-        quiz_result: quiz_result,
-        result: result,
-        user_info: roomStatusChangeDto.user_info,
-      },
-    };
+    return this.reviewHandlers.handleSubmitCode(codeSubmission, socket);
   }
 
   @SubscribeMessage("forceLeave")
@@ -394,9 +211,16 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody("index") index: number,
     @ConnectedSocket() socket: ExtendedSocket
   ) {
-    const userId = this.roomService.getUserIdFromIndex(title, index);
-    const userSocketid = this.authService.getSocketIdByuserId(await userId);
-    this.nsp.to(await userSocketid).emit("kicked", title);
+    return this.roomStatusHandlers.handleForceLeave(title, index, socket);
+  }
+
+  @SubscribeMessage("reviewPass")
+  async handleReviewPass(
+    @MessageBody("title") title: string,
+    @MessageBody("review") review: boolean,
+    @ConnectedSocket() socket: ExtendedSocket
+  ) {
+    this.reviewHandlers.handleReviewPass(title, review, socket);
   }
 
   @SubscribeMessage("timer")
@@ -449,53 +273,5 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
       }
     }, 1000);
-  }
-
-  @SubscribeMessage("reviewPass")
-  async handleReviewPass(
-    @MessageBody("title") title: string,
-    @MessageBody("review") review: boolean,
-    @ConnectedSocket() socket: ExtendedSocket
-  ) {
-    const check = await this.roomService.getResult(
-      socket.room_id,
-      socket.user_id,
-      review
-    );
-    if (check === false) {
-      return {
-        success: false,
-        payload: { message: "다시 버튼을 눌러주세요." },
-      };
-    }
-    const reveiwAll = await this.roomService.checkReviewOrNot(title);
-    const roomInfo = await this.roomService.getRoomInfo(socket.room_id);
-
-    if (reveiwAll === false) {
-      await this.roomService.resetUserStatus(socket.room_id);
-      const roomInfo = await this.roomService.getRoomInfo(socket.room_id);
-      this.nsp.to(title).emit("reviewFinished", roomInfo);
-    } else {
-      let reviewer;
-      outerLoop: if (
-        roomInfo instanceof RoomStatusChangeDto ||
-        roomInfo instanceof TeamDto
-      ) {
-        for (const user of roomInfo.user_info) {
-          if (user instanceof UserInfoDto) {
-            if (user.review === true) {
-              reviewer = user.nickname;
-              break outerLoop;
-            }
-          }
-        }
-      }
-      this.nsp.to(title).emit("room-status-changed", {
-        roomInfo: roomInfo,
-        reviewer: reviewer,
-      });
-    }
-
-    return { success: false, payload: { message: "" } };
   }
 }
