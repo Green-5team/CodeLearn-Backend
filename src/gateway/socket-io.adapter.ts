@@ -1,5 +1,4 @@
 import { INestApplication } from '@nestjs/common';
-import { createServer } from 'http';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as socketioJwtAuth from 'socketio-jwt-auth';
 import { jwtSocketIoMiddleware } from './jwt-socket-io.middleware';

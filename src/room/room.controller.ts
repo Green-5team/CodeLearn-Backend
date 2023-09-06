@@ -1,8 +1,6 @@
-import { CodingTestService } from './../codingtest/codingtest.service';
-import { ApiOkResponse, ApiOperation, ApiQuery, ApiResponse, ApiTags, getSchemaPath } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RoomService } from './room.service';
 import { Body, Controller, Post, Get, UseGuards, Req, Query } from '@nestjs/common';
-import { RoomCreateDto } from './dto/room.dto';
 import { Room } from './schemas/room.schema';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from 'src/users/users.service';
