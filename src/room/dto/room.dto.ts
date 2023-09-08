@@ -1,7 +1,7 @@
 import { IsString, IsNotEmpty, IsNumber, IsArray, IsBoolean } from 'class-validator';
 import { IsEnum, IsOptional, Validate, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
 
-import { ApiProperty, ApiTags } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { RoomStatus } from '../room.model';
 

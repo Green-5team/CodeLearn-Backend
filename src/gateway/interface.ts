@@ -19,7 +19,7 @@ export interface CodeSubmission {
 
 export interface JoinRoomPayload {
   title: string;
-  password?: string; // 옵셔널 필드
+  password?: string;
 }
 
 export interface ResponsePayload {

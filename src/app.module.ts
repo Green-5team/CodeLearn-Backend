@@ -1,25 +1,20 @@
-import { GatewayModule } from './gateway/gateway.module';
-import { Module } from '@nestjs/common';
-import { RoomModule } from './room/room.module';
-import { MongooseModule } from '@nestjs/mongoose';
+import { GatewayModule } from "./gateway/gateway.module";
+import { Module } from "@nestjs/common";
+import { RoomModule } from "./room/room.module";
+import { MongooseModule } from "@nestjs/mongoose";
 import { ConfigModule } from "@nestjs/config";
-import { PassportModule } from '@nestjs/passport';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { CodingTestService } from './codingtest/codingtest.service';
-import { CodingtestModule } from './codingtest/codingtest.module';
-import { HttpModule } from '@nestjs/axios';
-import { SocketProvider } from './socket.provider';
-import { WebrtcModule } from './webrtc/webrtc.module';
-import { webRtcGateway } from './webrtc/webrtc.gateway';
-import { RoomGateway } from './webrtc/webrtc.gateway_two';
-
-
+import { PassportModule } from "@nestjs/passport";
+import { AuthModule } from "./auth/auth.module";
+import { UsersModule } from "./users/users.module";
+import { CodingtestModule } from "./codingtest/codingtest.module";
+import { HttpModule } from "@nestjs/axios";
+import { SocketProvider } from "./socket.provider";
+import { RoomGateway } from "./webrtc/webrtc.gateway_two";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath : '.env',
+      envFilePath: ".env",
       isGlobal: true,
     }),
     MongooseModule.forRoot(process.env.MONGODB_ID),
@@ -31,10 +26,9 @@ import { RoomGateway } from './webrtc/webrtc.gateway_two';
     CodingtestModule,
     HttpModule,
     RoomModule,
-    RoomGateway
+    RoomGateway,
   ],
   controllers: [],
-  providers: [SocketProvider]
+  providers: [SocketProvider],
 })
-
 export class AppModule {}
