@@ -49,6 +49,9 @@ export class Problem extends Document {
     @Prop()
     @IsArray()
     output: string[];
+
+    @Prop()
+    limit_time: number;
 }
 export const ProblemSchema = SchemaFactory.createForClass(Problem);
 
